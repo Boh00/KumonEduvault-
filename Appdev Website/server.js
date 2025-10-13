@@ -1,78 +1,104 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const path = require('path');
+import express from "express";
+import mongoose from "mongoose";
+import bcrypt from "bcrypt";
+import cors from "cors";
 
-// Import models for each user type
-const Admin = require('./models/Admin');
-const Instructor = require('./models/Instructor');
-const Student = require('./models/Student');
+import Student from "./models/Student.js";
+import Instructor from "./models/Instructor.js";
+import Admin from "./models/Admin.js";
 
 const app = express();
+app.use(express.json());
 app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static("public"));
 
-// MongoDB Atlas connection
-mongoose.connect("mongodb+srv://lancemacalalad1104_db_user:OxUBj8xxF85JYKIA@cluster0.sxatxqn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0", {
+mongoose.connect("mongodb://localhost:27017/eduvault", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-})
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+}).then(() => console.log("Connected to MongoDB"))
+  .catch(err => console.error("MongoDB connection failed:", err));
 
-function getModelByRole(role) {
-  switch (role.toLowerCase()) {
-    case 'admin':
-      return Admin;
-    case 'instructor':
-      return Instructor;
-    case 'student':
-      return Student;
-    default:
-      return null;
-  }
-}
-
-app.post('/signup', async (req, res) => {
-  const { email, password, role } = req.body;
-  const Model = getModelByRole(role);
-
-  if (!Model) return res.status(400).json({ message: 'Invalid role specified' });
-
+app.post("/signup/student", async (req, res) => {
+  const { name, email, password } = req.body;
   try {
-    const existing = await Model.findOne({ email });
-    if (existing) return res.status(400).json({ message: 'Email already exists' });
+    const existing = await Student.findOne({ email });
+    if (existing) return res.status(400).json({ message: "Student already exists" });
 
-    const newUser = new Model({ email, password });
-    await newUser.save();
-    res.json({ message: `${role} signup successful!` });
+    const hashed = await bcrypt.hash(password, 10);
+    const student = new Student({ name, email, password: hashed });
+    await student.save();
+
+    res.json({ message: "Student signup successful!" });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err });
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post("/signup/instructor", async (req, res) => {
+  const { name, email, password } = req.body;
+  try {
+    const existing = await Instructor.findOne({ email });
+    if (existing) return res.status(400).json({ message: "Instructor already exists" });
+
+    const hashed = await bcrypt.hash(password, 10);
+    const instructor = new Instructor({ name, email, password: hashed });
+    await instructor.save();
+
+    res.json({ message: "Instructor signup successful!" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post("/signup/admin", async (req, res) => {
+  const { name, email, password } = req.body;
+  try {
+    const existing = await Admin.findOne({ email });
+    if (existing) return res.status(400).json({ message: "Admin already exists" });
+
+    const hashed = await bcrypt.hash(password, 10);
+    const admin = new Admin({ name, email, password: hashed });
+    await admin.save();
+
+    res.json({ message: "Admin signup successful!" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 
-app.post('/login', async (req, res) => {
-  const { email, password, role } = req.body;
-  const Model = getModelByRole(role);
+app.post("/login/student", async (req, res) => {
+  const { email, password } = req.body;
+  const user = await Student.findOne({ email });
+  if (!user) return res.status(400).json({ message: "Student not found" });
 
-  if (!Model) return res.status(400).json({ message: 'Invalid role specified' });
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) return res.status(400).json({ message: "Invalid password" });
 
-  try {
-    const user = await Model.findOne({ email, password });
-    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
-
-    res.json({
-      message: `${role} login successful!`,
-      redirect: `${role.toLowerCase()}-homepage.html`
-    });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err });
-  }
+  res.json({ message: "Login successful!", redirect: "StudentHomePage.html" });
 });
 
-const PORT = 5000;
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+app.post("/login/instructor", async (req, res) => {
+  const { email, password } = req.body;
+  const user = await Instructor.findOne({ email });
+  if (!user) return res.status(400).json({ message: "Instructor not found" });
+
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) return res.status(400).json({ message: "Invalid password" });
+
+  res.json({ message: "Login successful!", redirect: "InstructorHomePage.html" });
+});
+
+app.post("/login/admin", async (req, res) => {
+  const { email, password } = req.body;
+  const user = await Admin.findOne({ email });
+  if (!user) return res.status(400).json({ message: "Admin not found" });
+
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) return res.status(400).json({ message: "Invalid password" });
+
+  res.json({ message: "Login successful!", redirect: "AdminHomePage.html" });
+});
+
+
+app.listen(5000, () => console.log("Server running at http://localhost:5000"));
