@@ -5,107 +5,87 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Instructor Sign Up</title>
   <style>
-    :root{
+    :root {
       --card-width: 320px;
       --muted: #bfbfbf;
       --input-bg: #fafafa;
       --border: #e6e6e6;
       --accent: #333333;
     }
-    html,body{height:100%;}
-    body{
-      margin:0;
+    html, body { height: 100%; }
+    body {
+      margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
       background: #10ceeb;
-      display:flex;
-      align-items:flex-start;
-      justify-content:center;
-      padding-top:18px; /* space for top rule like in the mock */
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 18px;
       color: #222;
     }
-    /* thin top rule like the screenshot */
-    .top-rule{position:fixed;left:0;right:0;top:0;height:3px;background:#000000;opacity:0.9}
-
-    .container{
-      width:var(--card-width);
-      box-sizing:border-box;
-    }
-
-    .card{
-      width:100%;
-      border-radius:10px;
-      border:1px solid var(--border);
-      padding:22px 18px;
-      box-shadow:0 0 0 1px rgba(0,0,0,0.01);
-      background:#fff;
+    .top-rule { position: fixed; left: 0; right: 0; top: 0; height: 3px; background: #000; opacity: 0.9; }
+    .container { width: var(--card-width); box-sizing: border-box; }
+    .card {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 22px 18px;
+      background: #fff;
       margin: 22px auto;
-      box-sizing:border-box;
+      box-sizing: border-box;
     }
-
-    .title{
-      text-align:center;
-      margin:-8px 0 14px 0; /* pull up like the small link in screenshot */
-      font-size:14px;
-      text-decoration:underline;
-      color:var(--accent);
-      font-weight:600;
+    .title {
+      text-align: center;
+      margin: -8px 0 14px 0;
+      font-size: 14px;
+      text-decoration: underline;
+      color: var(--accent);
+      font-weight: 600;
     }
-
-    .field{
-      margin-bottom:14px;
+    .field { margin-bottom: 14px; }
+    label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #333;
     }
-
-    label{
-      display:block;
-      font-size:13px;
-      margin-bottom:6px;
-      color:#333;
+    input[type="text"], input[type="email"], input[type="password"], input[type="date"] {
+      width: 100%;
+      height: 38px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      font-size: 13px;
+      color: #333;
+      box-sizing: border-box;
     }
-
-    input[type="text"], input[type="email"], input[type="password"], input[type="date"]{
-      width:100%;
-      height:38px;
-      padding:8px 12px;
-      border-radius:8px;
-      border:1px solid var(--border);
-      background:var(--input-bg);
-      box-sizing:border-box;
-      font-size:13px;
-      color:#333;
+    input::placeholder { color: var(--muted); }
+    .btn {
+      width: 100%;
+      height: 42px;
+      border-radius: 8px;
+      border: 0;
+      background: #2f2f2f;
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+      margin-top: 8px;
     }
-
-    input::placeholder{color:var(--muted)}
-
-    .btn{
-      width:100%;
-      height:42px;
-      border-radius:8px;
-      border:0;
-      background:#2f2f2f;
-      color:#fff;
-      font-size:15px;
-      cursor:pointer;
-      margin-top:8px;
+    .btn:active { transform: translateY(1px); }
+    .footer-links {
+      display: flex;
+      justify-content: flex-start;
+      margin-top: 12px;
     }
-
-    .btn:active{transform:translateY(1px)}
-
-    .footer-links{
-      display:flex;
-      justify-content:flex-start;
-      margin-top:12px;
+    .back-link {
+      color: #333;
+      text-decoration: none;
+      font-size: 13px;
+      padding-left: 2px;
     }
-
-    .back-link{
-      color:#333;
-      text-decoration:none;
-      font-size:13px;
-      padding-left:2px;
-    }
-
-    /* make it look like a phone mock: center vertically on small screens */
-    @media(min-width:600px){
-      body{align-items:flex-start}
+    @media(min-width: 600px) {
+      body { align-items: flex-start; }
     }
   </style>
 </head>
@@ -115,38 +95,40 @@
     <div class="card" role="region" aria-label="Instructor Sign Up">
       <a class="title" href="#">Sign Up</a>
 
-      <form>
+      <form action="/signup" method="POST">
+        <input type="hidden" name="role" value="instructor" />
+
         <div class="field">
           <label for="email">Email</label>
-          <input id="email" type="email" placeholder="Value" required>
+          <input id="email" name="email" type="email" placeholder="Enter your email" required>
         </div>
 
         <div class="field">
           <label for="idnum">ID Number</label>
-          <input id="idnum" type="text" placeholder="Value">
+          <input id="idnum" name="idNumber" type="text" placeholder="Enter ID number" required>
         </div>
 
         <div class="field">
           <label for="password">Password</label>
-          <input id="password" type="password" placeholder="Value">
+          <input id="password" name="password" type="password" placeholder="Enter password" required>
         </div>
 
         <div class="field">
           <label for="confirm">Confirm Password</label>
-          <input id="confirm" type="password" placeholder="Value">
+          <input id="confirm" type="password" placeholder="Confirm password" required>
         </div>
 
         <div class="field">
           <label for="fullname">Full Name</label>
-          <input id="fullname" type="text" placeholder="Value">
+          <input id="fullname" name="fullName" type="text" placeholder="Enter full name" required>
         </div>
 
         <div class="field">
           <label for="start">Starting Date</label>
-          <input id="start" type="text" placeholder="Value">
+          <input id="start" name="startingDate" type="date" required>
         </div>
 
-        <button type="submit" class="btn">Log in</button>
+        <button type="submit" class="btn">Sign Up</button>
 
         <div class="footer-links">
           <a href="Login instructor.html" class="back-link">Back</a>
@@ -154,5 +136,60 @@
       </form>
     </div>
   </div>
+<script>
+  document.getElementById('signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Grab the input values
+    const fullName = document.getElementById('fullName').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const idNumber = document.getElementById('idNumber').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const startingDate = document.getElementById('startingDate').value;
+    const role = 'instructor';  // fixed role for this form
+
+    const messageBox = document.getElementById('message');
+    messageBox.textContent = '';
+    messageBox.style.color = 'red'; // default to red for errors
+
+    // Basic validation example (optional)
+    if (!email || !password) {
+      messageBox.textContent = 'Email and password are required.';
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:5000/signup", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email, 
+          password, 
+          role, 
+          idNumber, 
+          fullName, 
+          startingDate 
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        messageBox.textContent = data.message || 'Error occurred while signing up.';
+        return;
+      }
+
+      messageBox.style.color = 'green';
+      messageBox.textContent = data.message;
+      alert(`${role} signup successful! Redirecting to login page...`);
+      window.location.href = 'Login instructor.html';  // change redirect as needed
+    } catch (err) {
+      console.error(err);
+      messageBox.textContent = 'Server error. Please try again later.';
+    }
+  });
+</script>
+
+
 </body>
 </html>

@@ -1,104 +1,123 @@
-import express from "express";
-import mongoose from "mongoose";
-import bcrypt from "bcrypt";
-import cors from "cors";
+const express = require('express');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const path = require('path');
 
-import Student from "./models/Student.js";
-import Instructor from "./models/Instructor.js";
-import Admin from "./models/Admin.js";
+const Admin = require('./models/Admin');
+const Instructor = require('./models/Instructor');
+const Student = require('./models/Student');
 
 const app = express();
-app.use(express.json());
 app.use(cors());
-app.use(express.static("public"));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-mongoose.connect("mongodb://localhost:27017/eduvault", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => console.log("Connected to MongoDB"))
-  .catch(err => console.error("MongoDB connection failed:", err));
+app.get('/', (req, res) => {
+  res.sendFile(path.resolve(__dirname, './public/Mainhomepage.html'));
+});
 
-app.post("/signup/student", async (req, res) => {
-  const { name, email, password } = req.body;
+// test route to check server is alive
+app.get('/_health', (req, res) => {
+  res.json({ ok: true, time: new Date().toISOString() });
+});
+
+const MONGO_URI = "mongodb+srv://lancemacalalad1104_db_user:OxUBj8xxF85JYKIA@cluster0.sxatxqn.mongodb.net/Users?retryWrites=true&w=majority";
+mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('Connected to MongoDB (atlas)'))
+  .catch(err => {
+    console.error('MongoDB connection error:', err && err.stack ? err.stack : err);
+    process.exit(1);
+  });
+
+function getModelByRole(role) {
+  if (!role) return null;
+  const r = role.toString().toLowerCase();
+  if (r === 'admin') return Admin;
+  if (r === 'instructor') return Instructor;
+  if (r === 'student') return Student;
+  return null;
+}
+
+app.post('/signup', async (req, res) => {
+  console.log('[SIGNUP] body:', req.body);
+  const { email, password, role, idNumber, fullName, startingDate } = req.body;
+
+  // Get the model based on the role (admin, instructor, or student)
+  const Model = getModelByRole(role);
+  if (!Model) {
+    console.warn('[SIGNUP] invalid role:', role);
+    return res.status(400).json({ message: 'Invalid role specified' });
+  }
+
   try {
-    const existing = await Student.findOne({ email });
-    if (existing) return res.status(400).json({ message: "Student already exists" });
+    // Check if the email already exists
+    const existing = await Model.findOne({ email }).lean();
+    if (existing) return res.status(400).json({ message: 'Email already exists' });
 
-    const hashed = await bcrypt.hash(password, 10);
-    const student = new Student({ name, email, password: hashed });
-    await student.save();
+    // Create the new user based on the role (admin, instructor, or student)
+    let newUser;
+    if (role === 'instructor' || role === 'admin') {
+      newUser = new Model({
+        email,
+        idNumber,
+        password,
+        fullName,
+        startingDate
+      });
+    } else if (role === 'student') {
+      newUser = new Model({
+        email,
+        password
+      });
+    } else {
+      return res.status(400).json({ message: 'Invalid role specified' });
+    }
 
-    res.json({ message: "Student signup successful!" });
+    // Save the new user to the database
+    await newUser.save();
+    res.json({ message: `${role} signup successful!` });
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error('[SIGNUP] error:', err && err.stack ? err.stack : err);
+    res.status(500).json({ message: 'Server error during signup' });
   }
 });
 
-app.post("/signup/instructor", async (req, res) => {
-  const { name, email, password } = req.body;
+app.post('/login', async (req, res) => {
+  console.log('[LOGIN] body:', req.body);
+  const { email, password, role } = req.body;
+  const Model = getModelByRole(role);
+  if (!Model) {
+    console.warn('[LOGIN] invalid role:', role);
+    return res.status(400).json({ message: 'Invalid role specified' });
+  }
+
   try {
-    const existing = await Instructor.findOne({ email });
-    if (existing) return res.status(400).json({ message: "Instructor already exists" });
+    // show which model object is being used
+    console.log('[LOGIN] using model:', Model.modelName);
 
-    const hashed = await bcrypt.hash(password, 10);
-    const instructor = new Instructor({ name, email, password: hashed });
-    await instructor.save();
+    const user = await Model.findOne({ email }).lean();
+    if (!user) {
+      console.log('[LOGIN] email not found:', email);
+      return res.status(401).json({ message: 'Email not found' });
+    }
 
-    res.json({ message: "Instructor signup successful!" });
+    if (user.password !== password) {
+      console.log('[LOGIN] incorrect password for:', email);
+      return res.status(401).json({ message: 'Incorrect password' });
+    }
+
+    // redirect path should not include /public because express.static serves public folder
+    res.json({
+      message: `${role} login successful!`,
+      redirect: `${role.toLowerCase()}FileManagement.html`
+    });
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error('[LOGIN] server error:', err && err.stack ? err.stack : err);
+    res.status(500).json({ message: 'Server error during login' });
   }
 });
 
-app.post("/signup/admin", async (req, res) => {
-  const { name, email, password } = req.body;
-  try {
-    const existing = await Admin.findOne({ email });
-    if (existing) return res.status(400).json({ message: "Admin already exists" });
-
-    const hashed = await bcrypt.hash(password, 10);
-    const admin = new Admin({ name, email, password: hashed });
-    await admin.save();
-
-    res.json({ message: "Admin signup successful!" });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-
-app.post("/login/student", async (req, res) => {
-  const { email, password } = req.body;
-  const user = await Student.findOne({ email });
-  if (!user) return res.status(400).json({ message: "Student not found" });
-
-  const valid = await bcrypt.compare(password, user.password);
-  if (!valid) return res.status(400).json({ message: "Invalid password" });
-
-  res.json({ message: "Login successful!", redirect: "StudentHomePage.html" });
-});
-
-app.post("/login/instructor", async (req, res) => {
-  const { email, password } = req.body;
-  const user = await Instructor.findOne({ email });
-  if (!user) return res.status(400).json({ message: "Instructor not found" });
-
-  const valid = await bcrypt.compare(password, user.password);
-  if (!valid) return res.status(400).json({ message: "Invalid password" });
-
-  res.json({ message: "Login successful!", redirect: "InstructorHomePage.html" });
-});
-
-app.post("/login/admin", async (req, res) => {
-  const { email, password } = req.body;
-  const user = await Admin.findOne({ email });
-  if (!user) return res.status(400).json({ message: "Admin not found" });
-
-  const valid = await bcrypt.compare(password, user.password);
-  if (!valid) return res.status(400).json({ message: "Invalid password" });
-
-  res.json({ message: "Login successful!", redirect: "AdminHomePage.html" });
-});
-
-
-app.listen(5000, () => console.log("Server running at http://localhost:5000"));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
