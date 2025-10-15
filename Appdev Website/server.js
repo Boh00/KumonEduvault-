@@ -18,7 +18,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.resolve(__dirname, './public/Mainhomepage.html'));
 });
 
-// test route to check server is alive
+
 app.get('/_health', (req, res) => {
   res.json({ ok: true, time: new Date().toISOString() });
 });
@@ -44,7 +44,7 @@ app.post('/signup', async (req, res) => {
   console.log('[SIGNUP] body:', req.body);
   const { email, password, role, idNumber, fullName, startingDate } = req.body;
 
-  // Get the model based on the role (admin, instructor, or student)
+
   const Model = getModelByRole(role);
   if (!Model) {
     console.warn('[SIGNUP] invalid role:', role);
@@ -52,11 +52,9 @@ app.post('/signup', async (req, res) => {
   }
 
   try {
-    // Check if the email already exists
     const existing = await Model.findOne({ email }).lean();
     if (existing) return res.status(400).json({ message: 'Email already exists' });
 
-    // Create the new user based on the role (admin, instructor, or student)
     let newUser;
     if (role === 'instructor' || role === 'admin') {
       newUser = new Model({
@@ -75,7 +73,6 @@ app.post('/signup', async (req, res) => {
       return res.status(400).json({ message: 'Invalid role specified' });
     }
 
-    // Save the new user to the database
     await newUser.save();
     res.json({ message: `${role} signup successful!` });
   } catch (err) {
@@ -94,7 +91,6 @@ app.post('/login', async (req, res) => {
   }
 
   try {
-    // show which model object is being used
     console.log('[LOGIN] using model:', Model.modelName);
 
     const user = await Model.findOne({ email }).lean();
@@ -108,10 +104,9 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Incorrect password' });
     }
 
-    // redirect path should not include /public because express.static serves public folder
     res.json({
       message: `${role} login successful!`,
-      redirect: `${role.toLowerCase()}FileManagement.html`
+      redirect: `${role.toLowerCase()}HomePage.html`
     });
   } catch (err) {
     console.error('[LOGIN] server error:', err && err.stack ? err.stack : err);
