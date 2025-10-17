@@ -3,10 +3,12 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
+const multer = require('multer');
 
 const Admin = require('./models/Admin');
 const Instructor = require('./models/Instructor');
 const Student = require('./models/Student');
+const FileUpload = require('./models/FileUpload');
 
 const app = express();
 app.use(cors());
@@ -17,7 +19,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => {
   res.sendFile(path.resolve(__dirname, './public/Mainhomepage.html'));
 });
-
 
 app.get('/_health', (req, res) => {
   res.json({ ok: true, time: new Date().toISOString() });
@@ -44,12 +45,8 @@ app.post('/signup', async (req, res) => {
   console.log('[SIGNUP] body:', req.body);
   const { email, password, role, idNumber, fullName, startingDate } = req.body;
 
-
   const Model = getModelByRole(role);
-  if (!Model) {
-    console.warn('[SIGNUP] invalid role:', role);
-    return res.status(400).json({ message: 'Invalid role specified' });
-  }
+  if (!Model) return res.status(400).json({ message: 'Invalid role specified' });
 
   try {
     const existing = await Model.findOne({ email }).lean();
@@ -57,18 +54,9 @@ app.post('/signup', async (req, res) => {
 
     let newUser;
     if (role === 'instructor' || role === 'admin') {
-      newUser = new Model({
-        email,
-        idNumber,
-        password,
-        fullName,
-        startingDate
-      });
+      newUser = new Model({ email, idNumber, password, fullName, startingDate });
     } else if (role === 'student') {
-      newUser = new Model({
-        email,
-        password
-      });
+      newUser = new Model({ email, password });
     } else {
       return res.status(400).json({ message: 'Invalid role specified' });
     }
@@ -76,7 +64,7 @@ app.post('/signup', async (req, res) => {
     await newUser.save();
     res.json({ message: `${role} signup successful!` });
   } catch (err) {
-    console.error('[SIGNUP] error:', err && err.stack ? err.stack : err);
+    console.error('[SIGNUP] error:', err);
     res.status(500).json({ message: 'Server error during signup' });
   }
 });
@@ -85,32 +73,76 @@ app.post('/login', async (req, res) => {
   console.log('[LOGIN] body:', req.body);
   const { email, password, role } = req.body;
   const Model = getModelByRole(role);
-  if (!Model) {
-    console.warn('[LOGIN] invalid role:', role);
-    return res.status(400).json({ message: 'Invalid role specified' });
-  }
+  if (!Model) return res.status(400).json({ message: 'Invalid role specified' });
 
   try {
-    console.log('[LOGIN] using model:', Model.modelName);
-
     const user = await Model.findOne({ email }).lean();
-    if (!user) {
-      console.log('[LOGIN] email not found:', email);
-      return res.status(401).json({ message: 'Email not found' });
-    }
-
-    if (user.password !== password) {
-      console.log('[LOGIN] incorrect password for:', email);
-      return res.status(401).json({ message: 'Incorrect password' });
-    }
+    if (!user) return res.status(401).json({ message: 'Email not found' });
+    if (user.password !== password) return res.status(401).json({ message: 'Incorrect password' });
 
     res.json({
       message: `${role} login successful!`,
-      redirect: `${role.toLowerCase()}HomePage.html`
+      redirect: `${role.toLowerCase()}HomePage.html`,
+      email: user.email
     });
   } catch (err) {
-    console.error('[LOGIN] server error:', err && err.stack ? err.stack : err);
+    console.error('[LOGIN] server error:', err);
     res.status(500).json({ message: 'Server error during login' });
+  }
+});
+
+// Multer config (memory storage)
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+// Upload endpoint using multer to parse multipart/form-data
+app.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    const body = req.body || {};
+
+    const studentEmail = body.studentEmail || body.email;
+    const fileName = body.fileName || body.fileName;
+    const worksheetValue = body.worksheetValue || body.worksheetVal || body.worksheet_val;
+    const instructor = body.instructor;
+
+    if (!studentEmail || !fileName || !worksheetValue || !instructor) {
+      return res.status(400).json({ message: 'Missing fields' });
+    }
+
+    const newUpload = new FileUpload({
+      studentEmail,
+      fileName,
+      worksheetValue,
+      instructor,
+      uploadedAt: new Date()
+    });
+
+    await newUpload.save();
+
+    console.log('[UPLOAD] metadata saved:', {
+      id: newUpload._id,
+      studentEmail,
+      fileName,
+      worksheetValue,
+      instructor,
+      fileProvided: !!file
+    });
+
+    res.json({ message: 'File uploaded successfully!' });
+  } catch (err) {
+    console.error('[UPLOAD ERROR]', err);
+    res.status(500).json({ message: 'Server error during file upload' });
+  }
+});
+
+app.get('/uploads', async (req, res) => {
+  try {
+    const uploads = await FileUpload.find().sort({ uploadedAt: -1 });
+    res.json(uploads);
+  } catch (err) {
+    console.error('[FETCH UPLOADS ERROR]', err);
+    res.status(500).json({ message: 'Error fetching uploads' });
   }
 });
 
