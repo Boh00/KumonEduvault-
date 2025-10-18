@@ -120,7 +120,7 @@
 <body>
   <div class="wrap">
     <div class="card" role="main" aria-labelledby="signup-heading">
-      <h1 id="signup-heading" class="title">Sign Up</h1>
+      <h1 id="signup-heading" class="title">Student Sign Up</h1>
 
       <form id="signup-form" autocomplete="on" novalidate>
         <div class="field">
@@ -140,11 +140,8 @@
 
         <div class="field">
           <label for="role">Role</label>
-          <select id="role" name="role" required>
-            <option value="" disabled selected>Select role</option>
-            <option value="student">Student</option>
-            <option value="instructor">Instructor</option>
-            <option value="admin">Admin</option>
+          <select id="role" name="role" required disabled>
+            <option value="student" selected>Student</option>
           </select>
         </div>
 
@@ -165,7 +162,7 @@
       const name = document.getElementById('name').value.trim();
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value.trim();
-      const role = document.getElementById('role').value;
+      const role = 'student'; // fixed role
 
       const messageBox = document.getElementById('message');
       messageBox.textContent = '';
@@ -174,7 +171,7 @@
         const response = await fetch("http://localhost:5000/signup/student", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, role })
+          body: JSON.stringify({ name, email, password, role })
         });
 
         const data = await response.json();

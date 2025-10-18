@@ -197,374 +197,114 @@
   </div>
 
   <script>
-    /***********************
-     * Simple client-side file manager
-     ************************/
-    const STORAGE_KEY = 'kumon_student_files_v1';
-    const grid = document.getElementById('grid');
-    const fileInput = document.getElementById('file-input');
-    const uploadArea = document.getElementById('upload-area');
-    const nameEdit = document.getElementById('name-edit');
-    const categoryEdit = document.getElementById('category-edit');
-    const storageUsage = document.getElementById('storage-usage');
-    const filterType = document.getElementById('filter-type');
-    const filterCategory = document.getElementById('filter-category');
-    const filterSearch = document.getElementById('filter-search');
-    const globalSearch = document.getElementById('global-search');
-    const clearSearch = document.getElementById('clear-search');
-    const selectAll = document.getElementById('select-all');
-    const btnBulkDelete = document.getElementById('btn-bulk-delete');
-    const btnExportMeta = document.getElementById('btn-export-meta');
-    const modal = document.getElementById('modal');
-    const modalClose = document.getElementById('modal-close');
-    const previewThumb = document.getElementById('preview-thumb');
-    const modalTitle = document.getElementById('modal-title');
-    const modalType = document.getElementById('modal-type');
-    const modalSize = document.getElementById('modal-size');
-    const downloadBtn = document.getElementById('download-btn');
-    const renameBtn = document.getElementById('rename-btn');
-    const deleteBtn = document.getElementById('delete-btn');
-    const modalCategory = document.getElementById('modal-category');
-    const modalNotes = document.getElementById('modal-notes');
-    const saveMeta = document.getElementById('save-meta');
-    const clearSearchBtn = document.getElementById('clear-search');
+const grid = document.getElementById('grid');
+const fileInput = document.getElementById('file-input');
+const uploadArea = document.getElementById('upload-area');
+const nameEdit = document.getElementById('name-edit');
+const categoryEdit = document.getElementById('category-edit');
+const filterType = document.getElementById('filter-type');
+const filterCategory = document.getElementById('filter-category');
+const filterSearch = document.getElementById('filter-search');
+const globalSearch = document.getElementById('global-search');
+const clearSearch = document.getElementById('clear-search');
+const selectAll = document.getElementById('select-all');
+const btnBulkDelete = document.getElementById('btn-bulk-delete');
+const btnExportMeta = document.getElementById('btn-export-meta');
+const modal = document.getElementById('modal');
+const modalClose = document.getElementById('modal-close');
+const previewThumb = document.getElementById('preview-thumb');
+const modalTitle = document.getElementById('modal-title');
+const modalType = document.getElementById('modal-type');
+const modalSize = document.getElementById('modal-size');
+const downloadBtn = document.getElementById('download-btn');
+const renameBtn = document.getElementById('rename-btn');
+const deleteBtn = document.getElementById('delete-btn');
+const modalCategory = document.getElementById('modal-category');
+const modalNotes = document.getElementById('modal-notes');
+const saveMeta = document.getElementById('save-meta');
 
-    let files = loadFiles(); // array of file objects
-    let currentPreviewId = null;
+let files = [];
+let currentPreviewId = null;
 
-    // File object structure:
-    // { id, name, filename, type, size, dataUrl (optional, for images/text), category, notes, createdAt }
+function humanSize(n){
+  if(n < 1024) return n + ' B';
+  if(n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+  return (n/(1024*1024)).toFixed(2) + ' MB';
+}
+function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 
-    function saveFiles(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(files));
-      updateStorageText();
-    }
-    function loadFiles(){
-      try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      } catch(e){ return []; }
-    }
-    function updateStorageText(){
-      storageUsage.textContent = files.length + ' file' + (files.length !== 1 ? 's' : '');
-    }
-
-    // helpers
-    function uid(prefix='f'){ return prefix + Math.random().toString(36).slice(2,9); }
-    function humanSize(n){
-      if(n < 1024) return n + ' B';
-      if(n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
-      return (n/(1024*1024)).toFixed(2) + ' MB';
-    }
-
-    // Render grid
-    function renderGrid(){
-      grid.innerHTML = '';
-      const q = (globalSearch.value || '').trim().toLowerCase();
-      const ft = filterType.value;
-      const fc = filterCategory.value;
-      const fs = (filterSearch.value || '').trim().toLowerCase();
-
-      const list = files.filter(f=>{
-        if(ft){
-          if(ft === 'image' && !f.type.startsWith('image/')) return false;
-          if(ft === 'text' && !f.type.startsWith('text/')) return false;
-          if(ft === 'pdf' && !f.type.includes('pdf')) return false;
-          if(ft === 'other' && (f.type.startsWith('image/') || f.type.startsWith('text/') || f.type.includes('pdf'))) return false;
-        }
-        if(fc && f.category !== fc) return false;
-        if(q && !(f.name.toLowerCase().includes(q) || (f.category||'').toLowerCase().includes(q) || (f.notes||'').toLowerCase().includes(q))) return false;
-        if(fs && !f.name.toLowerCase().includes(fs)) return false;
-        return true;
-      });
-
-      if(list.length === 0){
-        grid.innerHTML = '<div style="grid-column:1/-1;padding:18px;background:#fff;border-radius:8px;border:1px solid var(--border);text-align:center;color:var(--muted)">No files found</div>';
-        return;
-      }
-
-      list.forEach(f => {
-        const card = document.createElement('div');
-        card.className = 'file-card';
-        card.dataset.id = f.id;
-        card.innerHTML = `
-          <label style="display:flex;align-items:flex-start;gap:8px">
-            <input type="checkbox" data-id="${f.id}" class="selchk" style="margin-top:6px">
-            <div style="flex:1">
-              <div class="thumb" aria-hidden="true">${renderThumb(f)}</div>
-              <div style="margin-top:8px">
-                <div class="meta">
-                  <div style="max-width:70%"><div class="fname" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</div><div class="fsmall">${f.category || 'Uncategorized'}</div></div>
-                  <div style="text-align:right;"><div class="fsmall">${humanSize(f.size)}</div><div class="fsmall">${(new Date(f.createdAt)).toLocaleDateString()}</div></div>
-                </div>
-                <div class="card-actions" style="margin-top:8px">
-                  <button class="action-btn" data-action="preview" data-id="${f.id}">Preview</button>
-                  <button class="action-btn" data-action="download" data-id="${f.id}">Download</button>
-                  <button class="action-btn" data-action="rename" data-id="${f.id}">Rename</button>
-                  <button class="action-btn" data-action="delete" data-id="${f.id}" style="background:#fff;border:1px solid #ffdfe0">Delete</button>
-                </div>
-              </div>
-            </div>
-          </label>
-        `;
-        grid.appendChild(card);
-      });
-    }
-
-    function renderThumb(f){
-      if(f.type.startsWith('image/') && f.dataUrl){
-        return `<img src="${f.dataUrl}" alt="${escapeHtml(f.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`;
-      }
-      if(f.type.startsWith('text/') && f.dataUrl){
-        return `<div style="padding:8px;text-align:left;font-size:13px;color:var(--muted);overflow:hidden;height:100%">${escapeHtml((f.textPreview||'').slice(0,200))}</div>`;
-      }
-      // icon by type
-      if(f.type.includes('pdf')) return `<div style="font-weight:700">PDF</div>`;
-      if(f.type.startsWith('video/')) return `<div style="font-weight:700">VID</div>`;
-      return `<div style="font-weight:700">${(f.type.split('/')[0] || 'FILE').toUpperCase()}</div>`;
-    }
-
-    // Escape HTML
-    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-    // Handle upload (FileList)
-    async function handleFiles(fileList){
-      const defaultName = (nameEdit.value || '').trim();
-      const defaultCat = (categoryEdit.value || '').trim();
-      for(const file of Array.from(fileList)){
-        // For demo, limit size to ~4MB per file to avoid huge localStorage usage
-        if(file.size > 4 * 1024 * 1024){
-          if(!confirm(`The file "${file.name}" is larger than 4MB and may not persist in this demo. Add anyway?`)) continue;
-        }
-        const id = uid();
-        const meta = {
-          id, name: defaultName || file.name.replace(/\\.[^/.]+$/, ''), filename: file.name,
-          type: file.type || 'application/octet-stream', size: file.size,
-          category: defaultCat || '', notes: '',
-          createdAt: Date.now()
-        };
-        // If image or text or small pdf, read data URL for preview
-        if(meta.type.startsWith('image/') || meta.type.startsWith('text/') || meta.type.includes('pdf')){
-          try {
-            const dataUrl = await readFileAsDataURL(file);
-            meta.dataUrl = dataUrl;
-            if(meta.type.startsWith('text/')){
-              // try extract preview text
-              try {
-                const text = await readFileAsText(file);
-                meta.textPreview = text.slice(0,200);
-              } catch(e){}
-            }
-          } catch(e){
-            console.error('Read error', e);
-          }
-        }
-        files.unshift(meta);
-        saveFiles();
-      }
-      nameEdit.value = '';
-      categoryEdit.value = '';
-      renderGrid();
-    }
-
-    function readFileAsDataURL(file){
-      return new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(r.result);
-        r.onerror = rej;
-        r.readAsDataURL(file);
-      });
-    }
-    function readFileAsText(file){
-      return new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(r.result);
-        r.onerror = rej;
-        r.readAsText(file);
-      });
-    }
-
-    // Drag & drop UI
-    uploadArea.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      uploadArea.classList.add('dragover');
-    });
-    uploadArea.addEventListener('dragleave', (e) => { uploadArea.classList.remove('dragover'); });
-    uploadArea.addEventListener('drop', (e) => {
-      e.preventDefault();
-      uploadArea.classList.remove('dragover');
-      const dt = e.dataTransfer;
-      if(dt && dt.files && dt.files.length) handleFiles(dt.files);
-    });
-
-    fileInput.addEventListener('change', (e) => {
-      if(e.target.files && e.target.files.length) handleFiles(e.target.files);
-      fileInput.value = '';
-    });
-
-    // Grid actions (delegation)
-    grid.addEventListener('click', async (e) => {
-      const btn = e.target.closest('button') || e.target.closest('input[type="checkbox"]');
-      if(!btn) return;
-      if(btn.classList.contains('selchk')) {
-        updateSelectAllState();
-        return;
-      }
-      const action = btn.dataset.action;
-      const id = btn.dataset.id;
-      if(action === 'preview'){
-        openPreview(id);
-      } else if(action === 'download'){
-        downloadFile(id);
-      } else if(action === 'rename'){
-        const f = files.find(x => x.id === id);
-        if(!f) return;
-        const newName = prompt('Enter new title for file:', f.name);
-        if(newName) { f.name = newName.trim(); saveFiles(); renderGrid(); }
-      } else if(action === 'delete'){
-        if(confirm('Delete this file?')) {
-          files = files.filter(x => x.id !== id);
-          saveFiles(); renderGrid();
-        }
-      }
-    });
-
-    // open preview modal
-    function openPreview(id){
-      const f = files.find(x => x.id === id);
-      if(!f) return;
-      currentPreviewId = id;
-      modalTitle.textContent = f.name;
-      modalType.textContent = f.type || '—';
-      modalSize.textContent = humanSize(f.size);
-      modalCategory.innerHTML = '<option value="">Uncategorized</option><option>Worksheet</option><option>Exam</option><option>Notes</option><option>Other</option>';
-      modalCategory.value = f.category || '';
-      modalNotes.value = f.notes || '';
-
-      // fill preview area
-      if(f.type.startsWith('image/') && f.dataUrl){
-        previewThumb.innerHTML = `<img src="${f.dataUrl}" alt="${escapeHtml(f.name)}" style="width:100%;height:100%;object-fit:contain;border-radius:6px">`;
-      } else if(f.type.startsWith('text/') && f.dataUrl){
-        // show text content if available
-        previewThumb.innerHTML = `<div style="padding:10px;text-align:left;overflow:auto;max-height:360px;color:var(--muted);font-size:13px;white-space:pre-wrap">${escapeHtml(f.textPreview || 'No preview')}</div>`;
-      } else {
-        previewThumb.innerHTML = `<div style="font-weight:700">${escapeHtml((f.type.split('/')[0]||'FILE').toUpperCase())}</div>`;
-      }
-
-      // set download link
-      downloadBtn.onclick = () => downloadFile(id);
-      // rename button
-      renameBtn.onclick = () => {
-        const newName = prompt('Rename file:', f.name);
-        if(newName){ f.name = newName.trim(); saveFiles(); renderGrid(); openPreview(id); }
-      };
-      // delete
-      deleteBtn.onclick = () => {
-        if(confirm('Delete this file?')) {
-          files = files.filter(x => x.id !== id);
-          saveFiles(); closeModal(); renderGrid();
-        }
-      };
-      saveMeta.onclick = () => {
-        f.category = modalCategory.value;
-        f.notes = modalNotes.value.trim();
-        saveFiles();
-        renderGrid();
-        alert('Saved.');
-      };
-
-      modal.style.display = 'flex';
-      modal.setAttribute('aria-hidden','false');
-    }
-
-    function closeModal(){
-      modal.style.display = 'none';
-      modal.setAttribute('aria-hidden','true');
-      currentPreviewId = null;
-    }
-    modalClose.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e)=> { if(e.target === modal) closeModal(); });
-
-    // download file (for demo we create a blob from dataUrl if present, otherwise create empty blob)
-    function downloadFile(id){
-      const f = files.find(x => x.id === id);
-      if(!f) return;
-      if(f.dataUrl){
-        // convert dataUrl to blob
-        fetch(f.dataUrl).then(res => res.blob()).then(blob => {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = (f.filename || f.name) || 'file';
-          a.click();
-          URL.revokeObjectURL(url);
-        });
-      } else {
-        // create placeholder blob
-        const blob = new Blob(['File preview not available.'], {type: 'text/plain'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = (f.filename || f.name) || 'file.txt';
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-    }
-
-    // selection and bulk delete
-    selectAll.addEventListener('change', () => {
-      const checks = document.querySelectorAll('.selchk');
-      checks.forEach(cb => cb.checked = selectAll.checked);
-    });
-
-    function updateSelectAllState(){
-      const checks = document.querySelectorAll('.selchk');
-      const all = Array.from(checks);
-      selectAll.checked = all.length && all.every(cb => cb.checked);
-    }
-
-    btnBulkDelete.addEventListener('click', () => {
-      const checked = Array.from(document.querySelectorAll('.selchk:checked')).map(cb => cb.dataset.id);
-      if(checked.length === 0){ alert('No files selected'); return; }
-      if(!confirm(`Delete ${checked.length} file(s)?`)) return;
-      files = files.filter(f => !checked.includes(f.id));
-      saveFiles(); renderGrid(); selectAll.checked = false;
-    });
-
-    // Export metadata CSV
-    btnExportMeta.addEventListener('click', () => {
-      if(!files.length){ alert('No files to export'); return; }
-      const rows = [['id','name','filename','type','size','category','createdAt','notes']];
-      files.forEach(f => rows.push([f.id,f.name,f.filename||'','' + f.type, f.size, f.category||'', new Date(f.createdAt).toISOString(), (f.notes||'').replace(/\\n/g,' ')]));
-      const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\\n');
-      const blob = new Blob([csv], {type:'text/csv'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'files_metadata.csv'; a.click();
-      URL.revokeObjectURL(url);
-    });
-
-    // Search & filter handlers
-    [filterType, filterCategory, filterSearch, globalSearch].forEach(el => el.addEventListener('input', renderGrid));
-    clearSearch.addEventListener('click', () => { globalSearch.value = ''; renderGrid(); });
-    clearSearchBtn.addEventListener('click', () => { filterSearch.value=''; filterType.value=''; filterCategory.value=''; renderGrid(); });
-
-    // actions from topbar controls: rename & delete from card handled earlier
-    // initial render
-    updateStorageText();
+async function fetchFiles(){
+  try{
+    const res = await fetch('/api/files');
+    if(!res.ok) throw new Error('Failed to load files');
+    files = await res.json();
     renderGrid();
+  }catch(e){
+    grid.innerHTML = '<div style="grid-column:1/-1;padding:18px;background:#fff;border-radius:8px;border:1px solid #eee;text-align:center;color:#888">Failed to load files.</div>';
+  }
+}
 
-    // helper: if user pastes image data URL into name field (unlikely), ignore
-    // populate modal category options
-    (function populateModalCategories(){
-      modalCategory.innerHTML = '<option value="">Uncategorized</option><option>Worksheet</option><option>Exam</option><option>Notes</option><option>Other</option>';
-    })();
+function renderGrid(){
+  grid.innerHTML = '';
+  if(!files.length){
+    grid.innerHTML = '<div style="grid-column:1/-1;padding:18px;background:#fff;border-radius:8px;border:1px solid #eee;text-align:center;color:#888">No files found</div>';
+    return;
+  }
+  files.forEach(f=>{
+    const card=document.createElement('div');
+    card.className='file-card';
+    card.dataset.id=f._id;
+    card.innerHTML=`
+      <div class="thumb">${renderThumb(f)}</div>
+      <div class="meta">
+        <div><div class="fname">${escapeHtml(f.originalname||f.name)}</div><div class="fsmall">${f.category||'Uncategorized'}</div></div>
+        <div class="fsmall">${humanSize(f.size||0)}</div>
+      </div>
+      <div class="card-actions">
+        <button class="action-btn" data-action="download" data-id="${f._id}">Download</button>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
 
-    // keyboard accessibility: Enter on upload area triggers file input
-    uploadArea.addEventListener('keydown', (e) => {
-      if(e.key === 'Enter' || e.key === ' ') { fileInput.click(); e.preventDefault(); }
-    });
+function renderThumb(f){
+  if(f.mimetype && f.mimetype.startsWith('image/')) return `<img src="/uploads/${f.filename}" style="width:100%;height:120px;object-fit:cover;border-radius:6px">`;
+  if(f.mimetype && f.mimetype.includes('pdf')) return `<div style="font-weight:700">PDF</div>`;
+  return `<div style="font-weight:700">${(f.mimetype||'FILE').split('/')[0].toUpperCase()}</div>`;
+}
 
-    // expose for debugging
-    window._kumonFiles = {get: ()=>files, save: saveFiles};
-  </script>
+fileInput.addEventListener('change', e=>{
+  if(e.target.files.length) uploadFile(e.target.files[0]);
+});
+
+async function uploadFile(file){
+  const formData=new FormData();
+  formData.append('file',file);
+  formData.append('studentEmail','student1@example.com');
+  formData.append('category',categoryEdit.value);
+  formData.append('name',nameEdit.value||file.name);
+  try{
+    const res=await fetch('/upload',{method:'POST',body:formData});
+    if(!res.ok) throw new Error('Upload failed');
+    await fetchFiles();
+    fileInput.value='';
+    nameEdit.value='';
+    categoryEdit.value='';
+  }catch(e){
+    alert('Upload failed.');
+  }
+}
+
+grid.addEventListener('click',e=>{
+  const btn=e.target.closest('button');
+  if(!btn)return;
+  const id=btn.dataset.id;
+  if(btn.dataset.action==='download') window.open(`/uploads/${id}`,'_blank');
+});
+
+uploadArea.addEventListener('click',()=>fileInput.click());
+fetchFiles();
+</script>
+
 </body>
 </html>

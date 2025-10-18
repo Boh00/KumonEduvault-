@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Activity — Student Log (Improved)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f3f7fb;
+    --panel:#ffffff;
+    --muted:#65707a;
+    --accent:#1fb6ff;    /* bright blue used in mock */
+    --accent-dark:#1aa6e6;
+    --line:#d9eaf6;
+    --radius:10px;
+    --shadow: 0 8px 20px rgba(10,20,30,0.06);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:#0b2430;-webkit-font-smoothing:antialiased}
+
+  /* Layout */
+  .app {
+    display:grid;
+    grid-template-columns: 260px 1fr;
+    min-height:100vh;
+  }
+  @media (max-width:880px){
+    .app{grid-template-columns:1fr}
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background:#e9ecef; /* soft gray */
+    padding:22px 18px;
+    border-right:4px solid rgba(0,0,0,0.03);
+  }
+  .profile {
+    display:flex;
+    gap:12px;
+    align-items:center;
+    margin-bottom:20px;
+  }
+  .avatar {
+    width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#fff,#e6f6ff);border:2px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--muted)
+  }
+  .username {font-weight:700}
+  .user-sub {font-size:13px;color:var(--muted);margin-top:4px}
+
+  .nav {
+    margin-top:10px;
+    display:flex;flex-direction:column;gap:8px;
+  }
+  .nav a {
+    display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:#123;
+    text-decoration:none;font-weight:600;
+  }
+  .nav a:hover{background:rgba(31,182,255,0.06)}
+  .nav a.active{
+    background:linear-gradient(90deg,var(--accent),var(--accent-dark));
+    color:#fff;box-shadow:var(--shadow);
+  }
+  .nav .dot{
+    width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #e6eef6;
+  }
+
+  /* Main area */
+  .main {
+    padding:18px 26px;
+  }
+
+  .topbar {
+    display:flex;align-items:center;gap:16px;justify-content:space-between;
+    background:linear-gradient(180deg,var(--accent),var(--accent-dark));
+    color:#fff;padding:16px;border-radius:10px 10px 8px 8px;
+    box-shadow: 0 6px 18px rgba(11,116,209,0.12);
+  }
+  .topbar h1{margin:0;font-weight:700;font-size:20px}
+  .topbar .controls{display:flex;gap:10px;align-items:center}
+
+  .controls .search {
+    display:flex;gap:8px;background:rgba(255,255,255,0.14);padding:6px;border-radius:8px;align-items:center;
+  }
+  .controls input[type="search"], .controls input[type="date"]{
+    border:none;background:transparent;color:#fff;padding:6px 8px;outline:none;font-weight:600;
+    min-width:140px;
+  }
+  .controls button{
+    background:#fff;color:var(--accent);border-radius:8px;padding:8px 10px;border:none;font-weight:700;cursor:pointer;
+  }
+
+  /* Table panel */
+  .panel {
+    margin-top:14px;background:var(--panel);border-radius:8px;padding:12px;border:1px solid var(--line);
+    box-shadow:var(--shadow);
+  }
+
+  .table-header {
+    display:flex;align-items:center;justify-content:space-between;padding:8px 6px;border-bottom:1px solid var(--line);
+  }
+  .table-header .info {font-weight:700;color:#223}
+  .table-header .actions {display:flex;gap:8px;align-items:center}
+
+  .activity-table {
+    width:100%;border-collapse:collapse;margin-top:8px;
+  }
+  .activity-table thead th{
+    text-align:left;padding:12px 10px;background:linear-gradient(180deg,#9de3ff33,#9de3ff11); position: sticky; top: 86px; z-index: 2;
+    border-bottom:1px solid var(--line); color:#08323f; font-weight:800;
+  }
+  .activity-table tbody tr{
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#bfefff66,#e6f9ff);
+  }
+  .activity-table tbody tr:nth-child(even){ background:linear-gradient(180deg,#bfefff44,#e6f9ff) }
+  .activity-table td{padding:14px 10px;vertical-align:middle}
+
+  .col-small {width:120px}
+  .col-xs {width:90px}
+
+  .remark {color:var(--muted);font-size:13px}
+  .user-badge{display:inline-block;padding:6px 8px;border-radius:999px;background:#fff;border:1px solid var(--line);font-weight:700}
+
+  /* small responsive */
+  @media (max-width:720px){
+    .activity-table thead th{font-size:13px}
+    .col-small{display:none}
+  }
+
+  /* footer area */
+  .table-foot {display:flex;align-items:center;justify-content:space-between;padding-top:10px}
+  .pagination {display:flex;gap:6px;align-items:center}
+  .page-btn{padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer}
+  .page-btn.active{background:var(--accent);color:#fff;border:none}
+
+  /* subtle hover */
+  .activity-table tbody tr:hover{transform:translateY(-2px);transition:transform .14s ease}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" aria-label="Main navigation">
+    <div class="profile" role="region" aria-label="Profile">
+      <div class="avatar">U</div>
+      <div>
+        <div class="username">Username <span style="font-weight:400">↓</span></div>
+        <div class="user-sub">user@gmail.com</div>
+      </div>
+    </div>
+
+    <nav class="nav" aria-label="Sidebar navigation">
+      <a href="#" class="active"><span class="dot"></span> Activity</a>
+      <a href="StudentHomePage.html"><span class="dot"></span> Home</a>
+      <a href="StudentFileManagement.html"><span class="dot"></span> Files</a>
+      <a href="StudentsSettingsPage.html"><span class="dot"></span> Settings</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar" role="banner">
+      <h1>Activity</h1>
+      <div class="controls" role="search">
+        <div class="search" aria-hidden="false">
+          <svg width="16" height="16" fill="#fff" viewBox="0 0 24 24"><path d="M21 21l-4.35-4.35"></path><circle cx="11" cy="11" r="6" stroke="#fff" stroke-width="1.5" fill="none"></circle></svg>
+          <input id="q" type="search" placeholder="Search activity..." aria-label="Search activity">
+        </div>
+        <input id="dateFilter" type="date" aria-label="Filter date">
+        <button id="refreshBtn" title="Refresh">Refresh</button>
+      </div>
+    </div>
+
+    <section class="panel" aria-labelledby="activity-heading">
+      <div class="table-header">
+        <div class="info" id="activity-heading">Recent activity</div>
+        <div class="actions">
+          <div class="small" id="stats">Showing <strong id="count">0</strong> items</div>
+        </div>
+      </div>
+
+      <table class="activity-table" role="table" aria-label="Activity table">
+        <thead>
+          <tr>
+            <th class="col-small">Date</th>
+            <th>Action</th>
+            <th>File</th>
+            <th>User</th>
+            <th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <!-- rows injected by JS -->
+        </tbody>
+      </table>
+
+      <div class="table-foot">
+        <div class="small muted">Tip: click column headers to sort (demo uses Date sort)</div>
+        <div class="pagination" aria-label="Pagination">
+          <button class="page-btn" id="prev">Prev</button>
+          <button class="page-btn active" id="pageNum">1</button>
+          <button class="page-btn" id="next">Next</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  // Demo data + simple table rendering, sorting, search, pagination
+  const data = generateSample(45);
+  let filtered = [...data];
+  let page = 1;
+  const pageSize = 10;
+  let sortDesc = true;
+
+  const tbody = document.getElementById('tbody');
+  const countEl = document.getElementById('count');
+  const qInput = document.getElementById('q');
+  const dateFilter = document.getElementById('dateFilter');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const pageNum = document.getElementById('pageNum');
+
+  function render(){
+    // apply search & date
+    const q = (qInput.value || '').trim().toLowerCase();
+    const dateVal = dateFilter.value ? new Date(dateFilter.value) : null;
+
+    filtered = data.filter(item => {
+      if(q){
+        const hay = (item.action + ' ' + (item.file||'') + ' ' + item.user + ' ' + (item.remarks||'')).toLowerCase();
+        if(!hay.includes(q)) return false;
+      }
+      if(dateVal){
+        const d = new Date(item.date);
+        if(d.toDateString() !== dateVal.toDateString()) return false;
+      }
+      return true;
+    });
+
+    // sort by date
+    filtered.sort((a,b) => sortDesc ? new Date(b.date) - new Date(a.date) : new Date(a.date) - new Date(b.date));
+
+    const total = filtered.length;
+    countEl.textContent = total;
+
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    if(page > totalPages) page = totalPages;
+    pageNum.textContent = page;
+
+    const start = (page - 1) * pageSize;
+    const view = filtered.slice(start, start + pageSize);
+
+    tbody.innerHTML = '';
+    if(view.length === 0){
+      tbody.innerHTML = `<tr><td colspan="5" style="padding:18px;text-align:center;color:var(--muted)">No results</td></tr>`;
+      return;
+    }
+
+    for(const row of view){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="col-small">${new Date(row.date).toLocaleString()}</td>
+        <td><strong>${escapeHtml(row.action)}</strong></td>
+        <td>${row.file ? `<span class="user-badge">${escapeHtml(row.file)}</span>` : '—'}</td>
+        <td>${escapeHtml(row.user)}</td>
+        <td class="remark">${escapeHtml(row.remarks || '')}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  // interactions
+  qInput.addEventListener('input', () => { page = 1; render(); });
+  dateFilter.addEventListener('change', () => { page = 1; render(); });
+  refreshBtn.addEventListener('click', () => { qInput.value=''; dateFilter.value=''; page=1; render(); });
+
+  prevBtn.addEventListener('click', () => { if(page>1){ page--; render(); } });
+  nextBtn.addEventListener('click', () => { const max = Math.ceil(filtered.length / pageSize); if(page<max){ page++; render(); } });
+
+  // click header to toggle sort
+  document.querySelector('.activity-table thead th.col-small').addEventListener('click', () => { sortDesc = !sortDesc; render(); });
+
+  // small helpers
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  function generateSample(n=20){
+    const types = ['Login','Upload','Download','Grade posted','Comment','System'];
+    const files = ['worksheet1.pdf','math_quiz.docx','reading_passage.txt','achievement_test.pdf', ''];
+    const users = ['Ana Reyes','Carlos Dela Cruz','Liza Santos','Miguel Ramos','Instructor A'];
+    const remarks = ['Success','Auto-saved','Marked late','Needs review','—'];
+    const arr=[];
+    const now = Date.now();
+    for(let i=0;i<n;i++){
+      arr.push({
+        id: 'e'+i,
+        date: new Date(now - (i * 1000*60*60*5)), // spaced
+        action: types[Math.floor(Math.random()*types.length)],
+        file: files[Math.floor(Math.random()*files.length)],
+        user: users[Math.floor(Math.random()*users.length)],
+        remarks: remarks[Math.floor(Math.random()*remarks.length)]
+      });
+    }
+    return arr;
+  }
+
+  // initial render
+  render();
+</script>
+</body>
+</html>

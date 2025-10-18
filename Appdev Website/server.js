@@ -42,9 +42,7 @@ function getModelByRole(role) {
 }
 
 app.post('/signup', async (req, res) => {
-  console.log('[SIGNUP] body:', req.body);
   const { email, password, role, idNumber, fullName, startingDate } = req.body;
-
   const Model = getModelByRole(role);
   if (!Model) return res.status(400).json({ message: 'Invalid role specified' });
 
@@ -64,13 +62,12 @@ app.post('/signup', async (req, res) => {
     await newUser.save();
     res.json({ message: `${role} signup successful!` });
   } catch (err) {
-    console.error('[SIGNUP] error:', err);
+    console.error('[SIGNUP ERROR]', err);
     res.status(500).json({ message: 'Server error during signup' });
   }
 });
 
 app.post('/login', async (req, res) => {
-  console.log('[LOGIN] body:', req.body);
   const { email, password, role } = req.body;
   const Model = getModelByRole(role);
   if (!Model) return res.status(400).json({ message: 'Invalid role specified' });
@@ -86,28 +83,26 @@ app.post('/login', async (req, res) => {
       email: user.email
     });
   } catch (err) {
-    console.error('[LOGIN] server error:', err);
+    console.error('[LOGIN ERROR]', err);
     res.status(500).json({ message: 'Server error during login' });
   }
 });
 
-// Multer config (memory storage)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Upload endpoint using multer to parse multipart/form-data
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {
-    const file = req.file;
+    const file = req.file || null;
     const body = req.body || {};
 
-    const studentEmail = body.studentEmail || body.email;
-    const fileName = body.fileName || body.fileName;
-    const worksheetValue = body.worksheetValue || body.worksheetVal || body.worksheet_val;
-    const instructor = body.instructor;
+    const studentEmail = body.studentEmail || body.email || null;
+    const fileName = body.fileName || (file ? file.originalname : null);
+    const worksheetValue = body.worksheetValue || null;
+    const instructor = body.instructor || null;
 
     if (!studentEmail || !fileName || !worksheetValue || !instructor) {
-      return res.status(400).json({ message: 'Missing fields' });
+      return res.status(400).json({ message: 'Missing required fields' });
     }
 
     const newUpload = new FileUpload({
@@ -119,16 +114,6 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     });
 
     await newUpload.save();
-
-    console.log('[UPLOAD] metadata saved:', {
-      id: newUpload._id,
-      studentEmail,
-      fileName,
-      worksheetValue,
-      instructor,
-      fileProvided: !!file
-    });
-
     res.json({ message: 'File uploaded successfully!' });
   } catch (err) {
     console.error('[UPLOAD ERROR]', err);

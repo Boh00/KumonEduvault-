@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Instructor Activity — Fixed Layout</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1724;
+    --panel:#0b1220;
+    --muted:#9aa7b2;
+    --glass: rgba(255,255,255,0.04);
+    --accent:#ffb020;
+    --line: rgba(255,255,255,0.06);
+    --radius:10px;
+    --max-width:1200px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#07101a,#0f1724);color:#e6f0f2;}
+  a{color:inherit;text-decoration:none}
+
+  /* top area */
+  header.top{max-width:var(--max-width);margin:18px auto 0;padding:0 18px;display:flex;align-items:center;justify-content:space-between}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#ff7b2d);display:flex;align-items:center;justify-content:center;font-weight:800;color:#07101a}
+  .title{font-weight:700}
+  .subtitle{color:var(--muted);font-size:13px}
+
+  .controls{max-width:var(--max-width);margin:12px auto;display:flex;gap:12px;align-items:center;padding:0 18px;flex-wrap:wrap;justify-content:space-between}
+  .controls-left{display:flex;gap:8px;align-items:center}
+  .search{background:var(--glass);padding:8px;border-radius:10px;display:flex;align-items:center;gap:8px;border:1px solid var(--line)}
+  .search input{background:transparent;border:none;color:inherit;outline:none;min-width:200px}
+  .btn{background:transparent;border:1px solid var(--line);padding:8px 10px;border-radius:8px;color:inherit;cursor:pointer;font-weight:600}
+  .btn.primary{background:linear-gradient(90deg,var(--accent),#ff7b2d);border:none;color:#07101a}
+
+  /* main grid */
+  .wrap{display:grid;grid-template-columns:1fr 360px;gap:18px;max-width:var(--max-width);margin:18px auto;padding:0 18px;align-items:start}
+  @media (max-width:1000px){ .wrap{grid-template-columns:1fr 320px} }
+  @media (max-width:860px){ .wrap{grid-template-columns:1fr; } }
+
+  .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:12px;padding:12px;border:1px solid var(--line);box-shadow:0 10px 40px rgba(3,6,10,0.5)}
+  .panel h2{margin:0 0 8px;font-size:16px}
+
+  /* Table container: allow the table area to scroll horizontally but keep body vertical scroll only on viewport */
+  .table-wrap{width:100%;overflow:auto;max-height:66vh;border-radius:8px;border:1px solid rgba(255,255,255,0.02);background:transparent;padding:4px}
+
+  /* fixed table layout so columns maintain widths */
+  .activity-table{
+    table-layout: fixed;
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+    min-width:780px; /* ensures table has enough room and triggers horizontal scroll when needed */
+  }
+
+  thead th{
+    text-align:left;
+    padding:10px 12px;
+    color:var(--muted);
+    font-weight:700;
+    border-bottom:1px solid var(--line);
+    position:sticky;
+    top:0; /* sticks on top of viewport */
+    background:linear-gradient(180deg,rgba(8,10,12,0.95),rgba(8,10,12,0.85));
+    z-index:999;
+    white-space:nowrap;
+  }
+
+  tbody tr{border-bottom:1px solid rgba(255,255,255,0.02)}
+  td{padding:10px 12px;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
+
+  /* column widths */
+  .col-select{width:48px;text-align:center}
+  .col-time{width:180px}
+  .col-event{width:260px;min-width:160px}
+  .col-target{width:140px}
+  .col-actor{width:140px}
+  .col-sev{width:110px}
+  .col-actions{width:170px;min-width:120px}
+
+  /* checkbox styling */
+  input[type="checkbox"].sel{width:18px;height:18px;margin:0}
+
+  /* action buttons compact and wrap if needed */
+  .row-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .row-actions button{padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;font-weight:600;cursor:pointer;white-space:nowrap;font-size:13px}
+
+  /* severity pills */
+  .severity{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;font-weight:700;font-size:13px}
+  .sev-info{background:rgba(55,193,163,0.08);color:#2bbf9a}
+  .sev-warn{background:rgba(255,176,32,0.08);color:#ffb020}
+  .sev-err{background:rgba(255,107,107,0.08);color:#ff6b6b}
+
+  /* right detail panel adjustments */
+  .detail{position:relative;padding:14px;border-radius:12px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);height:auto;max-height:66vh;overflow:auto}
+  .detail h3{margin:0 0 8px}
+  .detail .muted{color:var(--muted)}
+  .detail textarea{width:100%;min-height:120px;padding:10px;border-radius:8px;border:1px solid var(--line);background:transparent;color:inherit;resize:vertical}
+
+  /* ensure the right panel does not go off-screen horizontally */
+  @media (min-width:861px){
+    .wrap{padding-right:18px}
+    .detail{max-width:360px;box-sizing:border-box}
+  }
+
+  /* on narrow screens stack, make table container not exceed viewport */
+  @media (max-width:860px){
+    .table-wrap{max-height:none}
+    .activity-table{min-width:0}
+    .col-target,.col-actor,.col-sev,.col-actions{width:auto}
+    td, thead th{white-space:normal}
+    .detail{max-height:none}
+  }
+
+  /* small visual tweaks */
+  .muted{color:var(--muted);font-size:13px}
+  .pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:12px}
+  .page-btn{background:transparent;border:1px solid var(--line);padding:6px 10px;border-radius:8px;color:inherit;cursor:pointer}
+  .page-btn.active{background:var(--accent);color:#07101a;border:none}
+</style>
+</head>
+<body>
+
+<header class="top" role="banner">
+  <div class="brand">
+    <div class="logo">I</div>
+    <div>
+      <div class="title">Instructor Activity Console</div>
+      <div class="subtitle muted">Live feed · manage events</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;align-items:center">
+    <a href="InstructorHomePage.html"><span class="dot"></span> Home</a>
+    <button class="btn" id="exportBtn">Export CSV</button>
+    <button class="btn primary" id="newEventBtn">New Event</button>
+    <a href="StudentsSettingsPage.html"><span class="dot"></span> Settings</a>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="controls-left">
+    <div class="search" role="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6" stroke="#cfeff0" stroke-width="1.6"/><path d="M21 21l-4.3-4.3" stroke="#cfeff0" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <input id="searchInput" placeholder="Search events, students, filenames..." aria-label="Search">
+    </div>
+
+    <select id="typeFilter" class="btn" title="Filter by Type">
+      <option value="">All types</option>
+      <option value="system">System</option>
+      <option value="upload">Upload</option>
+      <option value="test">Test</option>
+      <option value="message">Message</option>
+      <option value="grade">Grade</option>
+    </select>
+
+    <select id="sevFilter" class="btn" title="Severity">
+      <option value="">All severities</option>
+      <option value="info">Info</option>
+      <option value="warn">Warning</option>
+      <option value="error">Error</option>
+    </select>
+
+    <input id="dateFrom" type="date" class="btn" title="Date from">
+    <input id="dateTo" type="date" class="btn" title="Date to">
+  </div>
+
+  <div style="display:flex;gap:8px;align-items:center">
+    <label style="display:flex;align-items:center;gap:8px;color:var(--muted)"><input id="selectAll" type="checkbox" class="sel"> Select all</label>
+    <button class="btn" id="bulkDelete">Delete selected</button>
+    <button class="btn" id="markResolved">Mark resolved</button>
+    <div class="muted" id="countChip">0 events</div>
+  </div>
+</div>
+
+<main class="wrap" role="main">
+  <!-- LEFT: table -->
+  <section class="panel" aria-label="Activity list">
+    <h2>Activity Log</h2>
+
+    <div class="table-wrap" id="tableWrap">
+      <table class="activity-table" aria-label="Activity table">
+        <thead>
+          <tr>
+            <th class="col-select"></th>
+            <th class="col-time" id="col-time">Time ⌄</th>
+            <th class="col-event">Event</th>
+            <th class="col-target">Target</th>
+            <th class="col-actor">Actor</th>
+            <th class="col-sev">Severity</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <!-- JS rows -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager">
+      <button class="page-btn" id="prev">Prev</button>
+      <div id="pageInfo" style="min-width:60px;text-align:center">1 / 1</div>
+      <button class="page-btn" id="next">Next</button>
+    </div>
+  </section>
+
+  <!-- RIGHT: detail -->
+  <aside class="detail" aria-label="Event detail">
+    <h3 id="detailTitle">Select an event</h3>
+    <div class="muted" id="detailTime">—</div>
+
+    <div style="margin-top:12px">
+      <div class="muted small">Type</div><div id="detailType">—</div>
+      <div class="muted small" style="margin-top:8px">Target</div><div id="detailTarget">—</div>
+      <div class="muted small" style="margin-top:8px">Actor</div><div id="detailActor">—</div>
+      <div class="muted small" style="margin-top:8px">Severity</div><div id="detailSeverity">—</div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="muted small">Notes / Remarks</div>
+      <textarea id="detailNotes" placeholder="Add internal remark..."></textarea>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+      <button class="btn primary" id="saveDetail">Save</button>
+      <button class="btn" id="resolveThis">Mark resolved</button>
+      <button class="btn" id="deleteThis" style="border-color:rgba(255,107,107,0.22)">Delete</button>
+    </div>
+
+    <div style="margin-top:18px">
+      <div class="muted small">Event JSON (debug)</div>
+      <pre id="debug" style="font-size:12px;color:var(--muted);max-height:160px;overflow:auto;background:transparent;padding:8px;border-radius:8px;border:1px dashed var(--line)"></pre>
+    </div>
+  </aside>
+</main>
+
+<script>
+  // Data + rendering (client-side demo)
+  const STORAGE_KEY = 'instr_activity_layout_v2';
+  const PAGE_SIZE = 10;
+
+  let events = load();
+  let page = 1;
+  let filtered = [];
+  let sortDesc = true;
+  let activeId = null;
+
+  const tbody = document.getElementById('tbody');
+  const countChip = document.getElementById('countChip');
+  const searchInput = document.getElementById('searchInput');
+  const typeFilter = document.getElementById('typeFilter');
+  const sevFilter = document.getElementById('sevFilter');
+  const dateFrom = document.getElementById('dateFrom');
+  const dateTo = document.getElementById('dateTo');
+  const selectAll = document.getElementById('selectAll');
+  const bulkDelete = document.getElementById('bulkDelete');
+  const markResolved = document.getElementById('markResolved');
+  const exportBtn = document.getElementById('exportBtn');
+  const newEventBtn = document.getElementById('newEventBtn');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const pageInfo = document.getElementById('pageInfo');
+
+  const detailTitle = document.getElementById('detailTitle');
+  const detailTime = document.getElementById('detailTime');
+  const detailType = document.getElementById('detailType');
+  const detailTarget = document.getElementById('detailTarget');
+  const detailActor = document.getElementById('detailActor');
+  const detailSeverity = document.getElementById('detailSeverity');
+  const detailNotes = document.getElementById('detailNotes');
+  const debug = document.getElementById('debug');
+  const saveDetail = document.getElementById('saveDetail');
+  const resolveThis = document.getElementById('resolveThis');
+  const deleteThis = document.getElementById('deleteThis');
+
+  // sample init
+  if(!events || !events.length){ events = sampleEvents(34); save(); }
+
+  // listeners
+  document.getElementById('col-time')?.addEventListener('click', ()=>{ sortDesc = !sortDesc; render(); });
+  searchInput.addEventListener('input', ()=>{ page=1; render(); });
+  [typeFilter, sevFilter, dateFrom, dateTo].forEach(el => el.addEventListener('input', ()=>{ page=1; render(); }));
+  selectAll.addEventListener('change', () => toggleSelectAll(selectAll.checked));
+  bulkDelete.addEventListener('click', handleBulkDelete);
+  markResolved.addEventListener('click', handleBulkResolve);
+  prevBtn.addEventListener('click', ()=>{ if(page>1){ page--; render(); } });
+  nextBtn.addEventListener('click', ()=>{ const max=Math.ceil(filtered.length/PAGE_SIZE); if(page<max){ page++; render(); } });
+  exportBtn.addEventListener('click', exportCSV);
+  newEventBtn.addEventListener('click', createQuickEvent);
+
+  saveDetail.addEventListener('click', saveDetailNotes);
+  resolveThis.addEventListener('click', ()=>{ if(activeId){ markResolvedId(activeId); }});
+  deleteThis.addEventListener('click', ()=>{ if(activeId){ if(confirm('Delete event?')){ deleteById(activeId); }}});
+
+  render();
+
+  // functions
+  function load(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }catch(e){return [];} }
+  function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(events)); }
+  function uid(p='e'){ return p + Math.random().toString(36).slice(2,9); }
+  function fmt(ts){ return new Date(ts).toLocaleString(); }
+
+  function render(){
+    const q = (searchInput.value || '').toLowerCase().trim();
+    const t = typeFilter.value;
+    const s = sevFilter.value;
+    const from = dateFrom.value ? new Date(dateFrom.value).setHours(0,0,0,0) : null;
+    const to = dateTo.value ? new Date(dateTo.value).setHours(23,59,59,999) : null;
+
+    filtered = events.filter(ev => {
+      if(t && ev.type !== t) return false;
+      if(s && ev.severity !== s) return false;
+      if(q){
+        const hay = (ev.type + ' ' + ev.title + ' ' + ev.target + ' ' + ev.actor + ' ' + (ev.note||'')).toLowerCase();
+        if(!hay.includes(q)) return false;
+      }
+      if(from && ev.ts < from) return false;
+      if(to && ev.ts > to) return false;
+      return true;
+    });
+
+    filtered.sort((a,b)=> sortDesc ? b.ts - a.ts : a.ts - b.ts);
+
+    const total = filtered.length;
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if(page > pages) page = pages;
+    const start = (page - 1) * PAGE_SIZE;
+    const paged = filtered.slice(start, start + PAGE_SIZE);
+
+    tbody.innerHTML = '';
+    for(const ev of paged){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="col-select"><input type="checkbox" class="selrow" data-id="${ev.id}" /></td>
+        <td class="col-time" title="${fmt(ev.ts)}">${fmt(ev.ts)}</td>
+        <td class="col-event" title="${escape(ev.title + (ev.desc ? ' — ' + ev.desc : ''))}"><strong>${escape(ev.title)}</strong><div class="muted" style="margin-top:6px">${escape(ev.desc || '')}</div></td>
+        <td class="col-target" title="${escape(ev.target)}"><div style="font-weight:700">${escape(ev.target)}</div></td>
+        <td class="col-actor" title="${escape(ev.actor)}">${escape(ev.actor)}</td>
+        <td class="col-sev">${sevHtml(ev.severity)}</td>
+        <td class="col-actions">
+          <div class="row-actions">
+            <button data-id="${ev.id}" class="viewBtn">View</button>
+            <button data-id="${ev.id}" class="assignBtn">Assign</button>
+            <button data-id="${ev.id}" class="delBtn" style="border-color:rgba(255,107,107,0.12)">Delete</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    tbody.querySelectorAll('.viewBtn').forEach(b => b.addEventListener('click', (e)=>{ openDetail(e.currentTarget.dataset.id); }));
+    tbody.querySelectorAll('.assignBtn').forEach(b => b.addEventListener('click', (e)=>{ quickAssign(e.currentTarget.dataset.id); }));
+    tbody.querySelectorAll('.delBtn').forEach(b => b.addEventListener('click', (e)=>{ const id=e.currentTarget.dataset.id; if(confirm('Delete event?')) deleteById(id); }));
+    tbody.querySelectorAll('.selrow').forEach(cb => cb.addEventListener('change', updateSelectFromRows));
+
+    countChip.textContent = total + ' events';
+    pageInfo.textContent = page + ' / ' + pages;
+    updateSelectAllState();
+
+    document.querySelectorAll('.activity-table tbody td').forEach(td => {
+      if(!td.getAttribute('title')) td.setAttribute('title', td.textContent.trim());
+    });
+
+    if(activeId && !events.find(x=>x.id===activeId)) clearDetail();
+  }
+
+  function sevHtml(s){
+    if(s==='info') return `<span class="severity sev-info">INFO</span>`;
+    if(s==='warn') return `<span class="severity sev-warn">WARN</span>`;
+    if(s==='error') return `<span class="severity sev-err">ERROR</span>`;
+    return `<span class="severity sev-info">${escape(s)}</span>`;
+  }
+
+  function openDetail(id){
+    const ev = events.find(e=>e.id===id);
+    if(!ev) return;
+    activeId = id;
+    detailTitle.textContent = ev.title;
+    detailTime.textContent = fmt(ev.ts);
+    detailType.textContent = ev.type;
+    detailTarget.textContent = ev.target;
+    detailActor.textContent = ev.actor;
+    detailSeverity.textContent = (ev.severity || '').toUpperCase();
+    detailNotes.value = ev.note || '';
+    debug.textContent = JSON.stringify(ev, null, 2);
+    // ensure detail visible on small screens: scroll to it if stacked
+    if(window.innerWidth <= 860){
+      document.querySelector('.detail').scrollIntoView({behavior:'smooth',block:'start'});
+    }
+  }
+
+  function clearDetail(){
+    activeId = null;
+    detailTitle.textContent = 'Select an event';
+    detailTime.textContent = '—';
+    detailType.textContent = '—';
+    detailTarget.textContent = '—';
+    detailActor.textContent = '—';
+    detailSeverity.textContent = '—';
+    detailNotes.value = '';
+    debug.textContent = '';
+  }
+
+  function saveDetailNotes(){
+    if(!activeId) return alert('Select an event first');
+    const ev = events.find(e=>e.id===activeId);
+    ev.note = detailNotes.value.trim();
+    ev.updated = Date.now();
+    save(); render(); alert('Saved');
+  }
+
+  function deleteById(id){
+    events = events.filter(e => e.id !== id);
+    save(); render();
+  }
+
+  function quickAssign(id){
+    const student = prompt('Assign to student (name):');
+    if(!student) return;
+    const ev = events.find(e=>e.id===id);
+    ev.target = student;
+    ev.note = (ev.note||'') + '\\nAssigned to ' + student;
+    save(); render(); alert('Assigned to ' + student);
+  }
+
+  function handleBulkDelete(){
+    const checked = Array.from(document.querySelectorAll('.selrow:checked')).map(cb=>cb.dataset.id);
+    if(checked.length===0) return alert('No items selected');
+    if(!confirm('Delete ' + checked.length + ' items?')) return;
+    events = events.filter(e => !checked.includes(e.id));
+    save(); render();
+  }
+
+  function handleBulkResolve(){
+    const checked = Array.from(document.querySelectorAll('.selrow:checked')).map(cb=>cb.dataset.id);
+    if(checked.length===0) return alert('No items selected');
+    checked.forEach(id=>{
+      const ev = events.find(x=>x.id===id);
+      if(ev) ev.resolved = true;
+    });
+    save(); render(); alert('Marked resolved');
+  }
+
+  function toggleSelectAll(val){ document.querySelectorAll('.selrow').forEach(cb => cb.checked = val); updateSelectFromRows(); }
+  function updateSelectFromRows(){ const all = Array.from(document.querySelectorAll('.selrow')); const checked = all.filter(cb=>cb.checked).length; selectAll.checked = all.length && (checked === all.length); }
+  function updateSelectAllState(){ const all = Array.from(document.querySelectorAll('.selrow')); if(all.length===0) selectAll.checked=false; else selectAll.checked = all.every(cb=>cb.checked); }
+
+  function exportCSV(){ const rows=[['timestamp','type','title','target','actor','severity','note','resolved']]; events.forEach(e => rows.push([ new Date(e.ts).toISOString(), e.type, e.title, e.target, e.actor, e.severity, (e.note||'').replace(/\\n/g,' '), e.resolved ? 'yes' : 'no' ])); const csv=rows.map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\\n'); const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='instructor_activity.csv'; a.click(); URL.revokeObjectURL(url); }
+
+  function createQuickEvent(){ const t = prompt('Event title','New assignment posted'); if(!t) return; const ev={ id:uid(), ts:Date.now(), type:'message', title:t, desc:'Created manually', target:'All students', actor:'You', severity:'info', note:'', resolved:false }; events.unshift(ev); save(); render(); }
+
+  function markResolvedId(id){ const ev=events.find(e=>e.id===id); if(ev){ ev.resolved=true; save(); render(); alert('Marked resolved'); } }
+
+  function uid(p='e'){ return p + Math.random().toString(36).slice(2,9); }
+
+  function sampleEvents(n=30){
+    const types=['system','upload','test','message','grade'];
+    const sever=['info','info','warn','error'];
+    const students=['Ana R.','Carlos D.','Liza S.','Miguel R.','Group A'];
+    const actors=['System','Instructor A','Instructor B','Auto-grader'];
+    const files=['worksheet1.pdf','math_q2.pdf','reading_passage.txt','achievement_test.pdf',''];
+    const arr=[]; const now=Date.now();
+    for(let i=0;i<n;i++){
+      arr.push({
+        id:uid(), ts: now - i*1000*60*60*Math.floor(Math.random()*6+1),
+        type: types[Math.floor(Math.random()*types.length)],
+        title: ['File uploaded','Test auto-scored','Student message','Grade posted','System notice'][Math.floor(Math.random()*5)],
+        desc: ['Upload complete','Auto grading finished','Student asked question','Grade published','Scheduled maintenance'][Math.floor(Math.random()*5)],
+        target: files[Math.floor(Math.random()*files.length)] || students[Math.floor(Math.random()*students.length)],
+        actor: actors[Math.floor(Math.random()*actors.length)],
+        severity: sever[Math.floor(Math.random()*sever.length)],
+        note: Math.random()>0.7? 'Requires review':'' , resolved: Math.random()>0.7
+      });
+    }
+    return arr;
+  }
+
+  function escape(s){ return String(s||'').replace(/[&<>"']/g, m=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]) ); }
+</script>
+</body>
+</html>

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Admin Sign Up</title>
   <style>
-    :root{
+    :root {
       --card-width: 320px;
       --muted: #bfbfbf;
       --input-bg: #fafafa;
@@ -20,7 +20,7 @@
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding-top: 18px; /* space for top rule */
+      padding-top: 18px;
       color: #222;
     }
     .top-rule {
@@ -41,7 +41,6 @@
       border-radius: 10px;
       border: 1px solid var(--border);
       padding: 22px 18px;
-      box-shadow: 0 0 0 1px rgba(0,0,0,0.01);
       background: #fff;
       margin: 22px auto;
       box-sizing: border-box;
@@ -74,9 +73,7 @@
       font-size: 13px;
       color: #333;
     }
-    input::placeholder {
-      color: var(--muted);
-    }
+    input::placeholder { color: var(--muted); }
     .btn {
       width: 100%;
       height: 42px;
@@ -88,9 +85,7 @@
       cursor: pointer;
       margin-top: 8px;
     }
-    .btn:active {
-      transform: translateY(1px);
-    }
+    .btn:active { transform: translateY(1px); }
     .footer-links {
       display: flex;
       justify-content: flex-start;
@@ -107,18 +102,13 @@
       font-size: 14px;
       min-height: 18px;
     }
-    @media (min-width: 600px) {
-      body {
-        align-items: flex-start;
-      }
-    }
   </style>
 </head>
 <body>
   <div class="top-rule"></div>
   <div class="container">
     <div class="card" role="region" aria-label="Admin Sign Up">
-      <a class="title" href="#">Sign Up</a>
+      <a class="title" href="#">Admin Sign Up</a>
 
       <form id="signup-form" novalidate>
         <div class="field">
@@ -127,8 +117,8 @@
         </div>
 
         <div class="field">
-          <label for="idNumber">ID Number</label>
-          <input id="idNumber" name="idNumber" type="text" placeholder="ID Number" />
+          <label for="idnum">ID Number</label>
+          <input id="idnum" name="idnum" type="text" placeholder="ID Number" />
         </div>
 
         <div class="field">
@@ -142,13 +132,13 @@
         </div>
 
         <div class="field">
-          <label for="fullName">Full Name</label>
-          <input id="fullName" name="fullName" type="text" placeholder="Full Name" />
+          <label for="fullname">Full Name</label>
+          <input id="fullname" name="fullname" type="text" placeholder="Full Name" />
         </div>
 
         <div class="field">
-          <label for="startingDate">Starting Date</label>
-          <input id="startingDate" name="startingDate" type="date" />
+          <label for="start">Starting Date</label>
+          <input id="start" name="start" type="date" />
         </div>
 
         <button type="submit" class="btn">Sign Up</button>
@@ -162,73 +152,60 @@
     </div>
   </div>
 
-<script>
-  // Simple password confirmation check before submit
-  function validatePasswords() {
-    const pass = document.getElementById('password').value;
-    const confirm = document.getElementById('confirm').value;
-    if (pass !== confirm) {
-      alert('Passwords do not match!');
-      return false;
-    }
-    return true;
-  }
-
-  document.getElementById('signup-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    if (!validatePasswords()) {
-      return;
+  <script>
+    function validatePasswords() {
+      const pass = document.getElementById('password').value;
+      const confirm = document.getElementById('confirm').value;
+      if (pass !== confirm) {
+        alert('Passwords do not match!');
+        return false;
+      }
+      return true;
     }
 
-    // Grab the input values
-    const fullName = document.getElementById('fullName').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const idNumber = document.getElementById('idNumber').value.trim();
-    const password = document.getElementById('password').value.trim();
-    const startingDate = document.getElementById('startingDate').value;
-    const role = 'admin';  // fixed role for this form
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!validatePasswords()) return;
 
-    const messageBox = document.getElementById('message');
-    messageBox.textContent = '';
-    messageBox.style.color = 'red'; // default color for errors
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const idnum = document.getElementById('idnum').value.trim();
+      const fullname = document.getElementById('fullname').value.trim();
+      const start = document.getElementById('start').value;
+      const role = 'admin';
 
-    // Basic validation example
-    if (!email || !password) {
-      messageBox.textContent = 'Email and password are required.';
-      return;
-    }
+      const messageBox = document.getElementById('message');
+      messageBox.textContent = '';
+      messageBox.style.color = 'red';
 
-    try {
-      const response = await fetch("http://localhost:5000/signup", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email, 
-          password, 
-          role, 
-          idNumber, 
-          fullName, 
-          startingDate 
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        messageBox.textContent = data.message || 'Error occurred while signing up.';
+      if (!email || !password) {
+        messageBox.textContent = 'Email and password are required.';
         return;
       }
 
-      messageBox.style.color = 'green';
-      messageBox.textContent = data.message;
-      alert(`${role} signup successful! Redirecting to login page...`);
-      window.location.href = 'Login Admin.html';  // change redirect as needed
-    } catch (err) {
-      console.error(err);
-      messageBox.textContent = 'Server error. Please try again later.';
-    }
-  });
-</script>
+      try {
+        const response = await fetch('http://localhost:5000/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, idnum, fullname, start, role })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          messageBox.textContent = data.message || 'Error occurred while signing up.';
+          return;
+        }
+
+        messageBox.style.color = 'green';
+        messageBox.textContent = data.message;
+        alert('Admin signup successful! Redirecting to login page...');
+        window.location.href = 'Login Admin.html';
+      } catch (err) {
+        console.error(err);
+        messageBox.textContent = 'Server error. Please try again later.';
+      }
+    });
+  </script>
 </body>
 </html>

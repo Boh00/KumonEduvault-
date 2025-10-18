@@ -37,7 +37,7 @@
     .title {
       text-align: center;
       margin: -8px 0 14px 0;
-      font-size: 14px;
+      font-size: 16px;
       text-decoration: underline;
       color: var(--accent);
       font-weight: 600;
@@ -84,8 +84,10 @@
       font-size: 13px;
       padding-left: 2px;
     }
-    @media(min-width: 600px) {
-      body { align-items: flex-start; }
+    #message {
+      text-align: center;
+      font-size: 14px;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -93,9 +95,9 @@
   <div class="top-rule"></div>
   <div class="container">
     <div class="card" role="region" aria-label="Instructor Sign Up">
-      <a class="title" href="#">Sign Up</a>
+      <h2 class="title">Instructor Sign Up</h2>
 
-      <form action="/signup" method="POST">
+      <form id="signup-form" autocomplete="on" novalidate>
         <input type="hidden" name="role" value="instructor" />
 
         <div class="field">
@@ -104,8 +106,8 @@
         </div>
 
         <div class="field">
-          <label for="idnum">ID Number</label>
-          <input id="idnum" name="idNumber" type="text" placeholder="Enter ID number" required>
+          <label for="idNumber">ID Number</label>
+          <input id="idNumber" name="idNumber" type="text" placeholder="Enter ID number" required>
         </div>
 
         <div class="field">
@@ -119,77 +121,77 @@
         </div>
 
         <div class="field">
-          <label for="fullname">Full Name</label>
-          <input id="fullname" name="fullName" type="text" placeholder="Enter full name" required>
+          <label for="fullName">Full Name</label>
+          <input id="fullName" name="fullName" type="text" placeholder="Enter full name" required>
         </div>
 
         <div class="field">
-          <label for="start">Starting Date</label>
-          <input id="start" name="startingDate" type="date" required>
+          <label for="startingDate">Starting Date</label>
+          <input id="startingDate" name="startingDate" type="date" required>
         </div>
 
         <button type="submit" class="btn">Sign Up</button>
 
+        <p id="message"></p>
+
         <div class="footer-links">
-          <a href="Login instructor.html" class="back-link">Back</a>
+          <a href="Login instructor.html" class="back-link">Back to Login</a>
         </div>
       </form>
     </div>
   </div>
-<script>
-  document.getElementById('signup-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
 
-    // Grab the input values
-    const fullName = document.getElementById('fullName').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const idNumber = document.getElementById('idNumber').value.trim();
-    const password = document.getElementById('password').value.trim();
-    const startingDate = document.getElementById('startingDate').value;
-    const role = 'instructor';  // fixed role for this form
+  <script>
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-    const messageBox = document.getElementById('message');
-    messageBox.textContent = '';
-    messageBox.style.color = 'red'; // default to red for errors
+      const fullName = document.getElementById('fullName').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const idNumber = document.getElementById('idNumber').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const confirm = document.getElementById('confirm').value.trim();
+      const startingDate = document.getElementById('startingDate').value;
+      const role = 'instructor';
 
-    // Basic validation example (optional)
-    if (!email || !password) {
-      messageBox.textContent = 'Email and password are required.';
-      return;
-    }
+      const messageBox = document.getElementById('message');
+      messageBox.textContent = '';
+      messageBox.style.color = 'red';
 
-    try {
-      const response = await fetch("http://localhost:5000/signup", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email, 
-          password, 
-          role, 
-          idNumber, 
-          fullName, 
-          startingDate 
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        messageBox.textContent = data.message || 'Error occurred while signing up.';
+      if (password !== confirm) {
+        messageBox.textContent = 'Passwords do not match.';
         return;
       }
 
-      messageBox.style.color = 'green';
-      messageBox.textContent = data.message;
-      alert(`${role} signup successful! Redirecting to login page...`);
-      window.location.href = 'Login instructor.html';  // change redirect as needed
-    } catch (err) {
-      console.error(err);
-      messageBox.textContent = 'Server error. Please try again later.';
-    }
-  });
-</script>
+      try {
+        const response = await fetch("http://localhost:5000/signup/instructor", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email, 
+            password, 
+            idNumber, 
+            fullName, 
+            startingDate, 
+            role 
+          })
+        });
 
+        const data = await response.json();
 
+        if (!response.ok) {
+          messageBox.textContent = data.message || 'Error occurred while signing up.';
+          return;
+        }
+
+        messageBox.style.color = 'green';
+        messageBox.textContent = data.message;
+        alert(`${role} signup successful! Redirecting to login page...`);
+        window.location.href = 'Login instructor.html';
+      } catch (err) {
+        console.error(err);
+        messageBox.textContent = 'Server error. Please try again later.';
+      }
+    });
+  </script>
 </body>
 </html>
