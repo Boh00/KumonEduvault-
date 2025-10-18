@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Instructor Home — KumonEduvault</title>
+
+  <!-- Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg: #10ceeb;              /* page background (light) */
+      --accent: #0f1724;         /* headings / dark */
+      --muted: #6b7280;          /* secondary text */
+      --card: #ffffff;
+      --border: #e6eef3;
+      --shadow: 0 10px 30px rgba(15,23,42,0.06);
+      --radius: 10px;
+      --primary: #0b74d1;
+      --max-width: 1200px;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--accent);-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+
+    /* Header */
+    .header{
+      background:#10ceeb;
+      padding:14px 26px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      box-shadow:0 1px 0 rgba(0,0,0,0.04);
+      position:sticky;top:0;z-index:50;
+    }
+    .brand{font-weight:700}
+    nav ul{list-style:none;margin:0;padding:0;display:flex;gap:14px;align-items:center}
+    nav a{font-size:14px;color:var(--muted);padding:6px 10px;border-radius:8px}
+    nav a.active{background:#f3f7fb;color:var(--accent)}
+
+    /* Page layout */
+    .page{
+      max-width:var(--max-width);
+      margin:28px auto;
+      padding: 0 20px;
+      display:grid;
+      grid-template-columns: 330px 1fr 420px;
+      gap:24px;
+      align-items:start;
+    }
+
+    @media (max-width:1100px){
+      .page{grid-template-columns: 1fr 420px; padding-bottom:40px}
+      .left-col{order:2}
+      .center{order:1}
+    }
+    @media (max-width:780px){
+      .page{grid-template-columns: 1fr; gap:18px}
+    }
+
+    /* Left column: classes and assignments */
+    .left-col{display:flex;flex-direction:column;gap:16px}
+    .card{background:var(--card);border-radius:10px;padding:14px;border:1px solid var(--border);box-shadow:var(--shadow)}
+    .section-title{font-weight:700;margin:0 0 8px;font-size:15px}
+
+    .class-card{display:flex;gap:12px;align-items:center;padding:12px;border-radius:8px;border:1px solid #f0f5f8;background:#fff;cursor:pointer}
+    .class-thumb{width:64px;height:64px;background:linear-gradient(180deg,#f2f4f6,#e9eef2);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+    .class-info h4{margin:0;font-size:16px}
+    .class-info p{margin:6px 0 0;font-size:13px;color:var(--muted)}
+    .class-meta{margin-left:auto;font-size:13px;color:var(--muted)}
+
+    /* assignments list */
+    .assign-list{display:flex;flex-direction:column;gap:10px}
+    .assign-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;border:1px solid #eef6fb;background:#fff}
+    .assign-left{display:flex;gap:10px;align-items:center}
+    .assign-title{font-weight:600}
+    .small-btn{background:#111;color:#fff;padding:6px 10px;border-radius:8px;border:none;cursor:pointer;font-size:13px}
+
+    /* Center: welcome + stats */
+    .center{display:flex;flex-direction:column;gap:16px}
+    .welcome{padding:8px 6px}
+    .welcome h1{font-size:40px;margin:0 0 6px}
+    .welcome p{margin:0;color:var(--muted)}
+
+    /* stats grid */
+    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .stat{background:linear-gradient(180deg,#fff,#fbfdff);border-radius:8px;padding:12px;border:1px solid #eff7fb}
+    .stat h3{margin:0;font-size:18px}
+    .stat p{margin:8px 0 0;color:var(--muted)}
+
+    /* roster / assignment details table */
+    .details{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+    table{width:100%;border-collapse:collapse;background:var(--card);border-radius:8px;overflow:hidden}
+    thead th{background:#f7fbfe;padding:10px;text-align:left;font-weight:600;border-bottom:1px solid #eef6fb}
+    tbody td{padding:10px;border-bottom:1px solid #f1f6f9}
+    tbody tr:last-child td{border-bottom:none}
+    .grade{display:inline-block;padding:6px 8px;border-radius:8px;background:#fff;border:1px solid #eef6f9;cursor:pointer}
+
+    /* Right column: create assignment / quick actions */
+    .panel{display:flex;flex-direction:column;gap:12px}
+    .form-row{display:flex;flex-direction:column;gap:6px}
+    input[type="text"], input[type="date"], select, textarea{
+      padding:10px 12px;border-radius:8px;border:1px solid #eef6f9;background:#fff;font-size:14px;outline:none
+    }
+    textarea{min-height:90px;resize:vertical}
+    .create-btn{background:var(--primary);color:#fff;padding:10px;border-radius:8px;border:none;font-weight:700;cursor:pointer}
+    .muted-note{font-size:13px;color:var(--muted)}
+
+    /* small responsive tweaks */
+    @media (max-width:1100px){
+      .page{grid-template-columns: 1fr 420px}
+      .center{display:none} /* center replaced by right panel for narrower screens */
+    }
+
+    @media (max-width:780px){
+      .page{grid-template-columns:1fr}
+      .center{display:block}
+    }
+
+  </style>
+</head>
+<body>
+  <header class="header" role="banner">
+    <div class="brand">KumonEduvault</div>
+    <nav aria-label="Main nav">
+      <ul>
+        <li style="display:inline"><a href="#" class="active">Home</a></li>
+        <li style="display:inline"><a href="InstructorFileManagement.html" class="active">File Management</a></li>
+        <li style="display:inline"><a href="ActivityLogPage(Instructor).html" class="active">Logs</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="page" role="main">
+
+    <!-- LEFT COLUMN -->
+    <aside class="left-col" aria-label="Classes & assignments">
+
+      <section class="card">
+        <h3 class="section-title">My Classes</h3>
+        <div id="classes-list" style="display:flex;flex-direction:column;gap:10px">
+          <!-- class cards inserted here by JS -->
+        </div>
+      </section>
+
+      <section class="card">
+        <h3 class="section-title">Assignments</h3>
+        <div class="assign-list" id="assign-list">
+          <!-- assignments go here -->
+        </div>
+        <div style="margin-top:10px"><button id="new-assignment-quick" class="small-btn">New Assignment</button></div>
+      </section>
+
+    </aside>
+
+    <!-- CENTER (overview & roster) -->
+    <section class="center" aria-label="Overview">
+      <div class="welcome">
+        <h1>Welcome, Instructor!</h1>
+        <p>Here's your day's snapshot — manage classes, create assignments, and grade students.</p>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <h3 id="total-students">0</h3>
+          <p>Total Students</p>
+        </div>
+        <div class="stat">
+          <h3 id="upcoming-assign">0</h3>
+          <p>Upcoming Assignments</p>
+        </div>
+      </div>
+
+      <div class="card details" aria-live="polite">
+        <h3 class="section-title" id="details-title">Class Details</h3>
+        <div id="details-content">
+          <p class="muted-note">Select a class on the left to see the roster and assignments.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN -->
+    <aside class="panel card" aria-label="Create assignment & quick actions">
+      <h3 class="section-title">Create Assignment</h3>
+      <form id="create-assignment-form">
+        <div class="form-row">
+          <label for="assign-title">Title</label>
+          <input id="assign-title" type="text" placeholder="e.g. Week 4 - Fractions" required>
+        </div>
+        <div class="form-row">
+          <label for="assign-class">Class</label>
+          <select id="assign-class" required>
+            <!-- options filled by JS -->
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="assign-due">Due Date</label>
+          <input id="assign-due" type="date" required>
+        </div>
+        <div class="form-row">
+          <label for="assign-desc">Description (optional)</label>
+          <textarea id="assign-desc" placeholder="Brief instructions..."></textarea>
+        </div>
+        <div>
+          <button type="submit" class="create-btn">Create Assignment</button>
+        </div>
+      </form>
+
+      <div style="height:1px;background:#f1f7fb;border-radius:4px;margin:8px 0"></div>
+
+      <div>
+        <h4 class="section-title" style="font-size:14px">Quick Actions</h4>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="export-roster" class="small-btn" style="background:#fff;color:#111;border:1px solid #eef6fb">Export Roster</button>
+          <button id="msg-students" class="small-btn">Message Students</button>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <script>
+    // Sample data
+    const classes = [
+      { id: 'c1', name: 'Mathematics - Grade 4', students: [
+        {id:'s1', name:'Ana Reyes', grade:null}, {id:'s2', name:'Carlos Dela Cruz', grade: 88}, {id:'s3', name:'Liza Santos', grade: 95}
+      ]},
+      { id: 'c2', name: 'Reading - Grade 4', students: [
+        {id:'s4', name:'Miguel Ramos', grade: 77}, {id:'s5', name:'Ella Lopez', grade: 92}
+      ]},
+      { id: 'c3', name: 'Mathematics - Grade 5', students: [
+        {id:'s6', name:'Jon Cruz', grade: 84}, {id:'s7', name:'Sara Tan', grade:null}
+      ]}
+    ];
+
+    const assignments = [
+      { id:'a1', title:'Week 3 - Multiplication', classId:'c1', due:'2025-10-19' },
+      { id:'a2', title:'Reading Comprehension', classId:'c2', due:'2025-10-20' }
+    ];
+
+    // DOM refs
+    const classesList = document.getElementById('classes-list');
+    const assignList = document.getElementById('assign-list');
+    const assignClassSelect = document.getElementById('assign-class');
+    const totalStudentsEl = document.getElementById('total-students');
+    const upcomingAssignEl = document.getElementById('upcoming-assign');
+    const detailsContent = document.getElementById('details-content');
+    const detailsTitle = document.getElementById('details-title');
+
+    // Initialize UI
+    function renderClasses(){
+      classesList.innerHTML = '';
+      classes.forEach(c => {
+        const card = document.createElement('div');
+        card.className = 'class-card';
+        card.dataset.classId = c.id;
+        card.innerHTML = `
+          <div class="class-thumb">📚</div>
+          <div class="class-info">
+            <h4>${c.name}</h4>
+            <p>${c.students.length} students</p>
+          </div>
+          <div class="class-meta">View</div>
+        `;
+        classesList.appendChild(card);
+      });
+
+      // fill class select options
+      assignClassSelect.innerHTML = '<option value="">Select class</option>';
+      classes.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.name;
+        assignClassSelect.appendChild(opt);
+      });
+
+      updateOverview();
+    }
+
+    function renderAssignments(){
+      assignList.innerHTML = '';
+      if(assignments.length === 0){
+        assignList.innerHTML = '<div class="muted-note">No assignments yet</div>';
+        return;
+      }
+      assignments.forEach(a => {
+        const el = document.createElement('div');
+        el.className = 'assign-item';
+        const cls = classes.find(c => c.id === a.classId);
+        el.innerHTML = `
+          <div class="assign-left">
+            <div style="width:8px;height:36px;border-radius:6px;background:#cde9ff;margin-right:10px"></div>
+            <div>
+              <div class="assign-title">${a.title}</div>
+              <div style="font-size:13px;color:${getComputedStyle(document.documentElement).getPropertyValue('--muted')};margin-top:6px">${cls ? cls.name : '—'} • Due ${a.due}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="small-btn open-assign" data-id="${a.id}">Open</button>
+            <button class="small-btn" data-id="${a.id}" style="background:#fff;color:#111;border:1px solid #eef6fb">Delete</button>
+          </div>
+        `;
+        assignList.appendChild(el);
+      });
+      updateOverview();
+    }
+
+    function updateOverview(){
+      const totalStudents = classes.reduce((sum, c) => sum + c.students.length, 0);
+      totalStudentsEl.textContent = totalStudents;
+      upcomingAssignEl.textContent = assignments.length;
+    }
+
+    // Show class details
+    function showClassDetails(classId){
+      const cls = classes.find(c => c.id === classId);
+      if(!cls) return;
+      detailsTitle.textContent = cls.name;
+      const table = document.createElement('table');
+      table.innerHTML = `
+        <thead><tr><th>Student</th><th>Grade</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${cls.students.map(s => `
+            <tr data-student="${s.id}">
+              <td>${s.name}</td>
+              <td><span class="grade" data-student="${s.id}">${s.grade === null ? '—' : s.grade}</span></td>
+              <td><button class="small-btn msg-btn" data-student="${s.id}">Message</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      `;
+      detailsContent.innerHTML = '';
+      detailsContent.appendChild(table);
+
+      // add inline edit handler for grade cells (delegation)
+      table.addEventListener('click', evt => {
+        const g = evt.target.closest('.grade');
+        if(!g) return;
+        const sid = g.dataset.student;
+        const sObj = cls.students.find(st => st.id === sid);
+        const newVal = prompt('Enter grade for ' + sObj.name + ' (0-100):', sObj.grade === null ? '' : sObj.grade);
+        if(newVal === null) return; // cancelled
+        const parsed = parseInt(newVal);
+        if(Number.isNaN(parsed) || parsed < 0 || parsed > 100){
+          alert('Please enter a number between 0 and 100.');
+          return;
+        }
+        sObj.grade = parsed;
+        // re-render current table grade
+        showClassDetails(classId);
+      });
+    }
+
+    // Event listeners
+    document.addEventListener('click', (e) => {
+      // class card click
+      const card = e.target.closest('.class-card');
+      if(card){
+        const cid = card.dataset.classId;
+        showClassDetails(cid);
+      }
+
+      // assignment open / delete
+      const openBtn = e.target.closest('.open-assign');
+      if(openBtn){
+        const aid = openBtn.dataset.id;
+        const a = assignments.find(x => x.id === aid);
+        if(a) alert('Open assignment: ' + a.title + '\\nClass: ' + (classes.find(c=>c.id===a.classId)?.name || '—'));
+        return;
+      }
+      const deleteBtn = e.target.closest('.assign-item button[style*="Delete"], .assign-item button[style*="Delete"]');
+      // the above selector may be inconsistent; safer approach below
+      if(e.target.matches('.assign-item button') && e.target.innerText.trim() === 'Delete'){
+        const aid = e.target.dataset.id;
+        const idx = assignments.findIndex(a => a.id === aid);
+        if(idx > -1 && confirm('Delete assignment?')) {
+          assignments.splice(idx,1);
+          renderAssignments();
+        }
+      }
+    });
+
+    // create assignment form
+    document.getElementById('create-assignment-form').addEventListener('submit', function(evt){
+      evt.preventDefault();
+      const title = document.getElementById('assign-title').value.trim();
+      const classId = document.getElementById('assign-class').value;
+      const due = document.getElementById('assign-due').value;
+      const desc = document.getElementById('assign-desc').value.trim();
+      if(!title || !classId || !due){
+        alert('Please fill title, class and due date.');
+        return;
+      }
+      const newA = { id: 'a' + (Math.random().toString(36).slice(2,8)), title, classId, due, desc };
+      assignments.unshift(newA);
+      renderAssignments();
+      // reset
+      this.reset();
+      // auto-select class details
+      showClassDetails(classId);
+    });
+
+    // quick new assignment button -> prefill a minimal form
+    document.getElementById('new-assignment-quick').addEventListener('click', () => {
+      if(classes.length === 0){ alert('No classes available.'); return; }
+      const c = classes[0].id;
+      document.getElementById('assign-class').value = c;
+      document.getElementById('assign-title').value = 'New Assignment';
+      document.getElementById('assign-due').value = new Date().toISOString().slice(0,10);
+      document.getElementById('assign-desc').value = '';
+      window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+    });
+
+    // quick actions
+    document.getElementById('export-roster').addEventListener('click', () => {
+      // simple CSV export example for selected class
+      const selectedClass = classes[0]; // for demo choose first class or prompt for which to export
+      const csvRows = [['Student ID','Name','Grade']];
+      selectedClass.students.forEach(s => csvRows.push([s.id, s.name, s.grade === null ? '' : s.grade]));
+      const csv = csvRows.map(r => r.map(cell=>`"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `${selectedClass.name.replace(/[^a-z0-9]+/gi,'_')}_roster.csv`; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('msg-students').addEventListener('click', () => {
+      alert('This would open the messaging panel (demo).');
+    });
+
+    // initial render
+    renderClasses();
+    renderAssignments();
+
+    // Optionally show first class details to create an initial view
+    if(classes.length) showClassDetails(classes[0].id);
+
+  </script>
+</body>
+</html>
