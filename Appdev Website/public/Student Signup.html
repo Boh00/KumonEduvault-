@@ -18,14 +18,12 @@
       --radius: 10px;
       font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial;
     }
-
     html, body {
       height: 100%;
       margin: 0;
       background: var(--canvas-bg);
       -webkit-font-smoothing: antialiased;
     }
-
     .wrap {
       min-height: 100vh;
       display: flex;
@@ -33,7 +31,6 @@
       justify-content: center;
       padding: 36px 16px;
     }
-
     .card {
       width: 320px;
       background: var(--card-bg);
@@ -43,7 +40,6 @@
       border: 1px solid var(--border);
       box-shadow: 0 8px 18px rgba(15,23,42,0.04);
     }
-
     .title {
       text-align: center;
       margin: 6px 0 18px;
@@ -53,7 +49,6 @@
       text-underline-offset: 6px;
       font-size: 16px;
     }
-
     form { display: block; }
     .field { margin-bottom: 14px; }
     label {
@@ -63,7 +58,6 @@
       color: var(--label);
       font-weight: 500;
     }
-
     input[type="text"],
     input[type="email"],
     input[type="password"],
@@ -78,14 +72,11 @@
       outline: none;
       transition: box-shadow .12s, border-color .12s;
     }
-
     input::placeholder { color: var(--muted); font-weight: 400; }
-
     input:focus, select:focus {
       border-color: #d1d5db;
       box-shadow: 0 6px 18px rgba(17,24,39,0.04);
     }
-
     .btn {
       display: block;
       width: 100%;
@@ -100,10 +91,8 @@
       color: #fff;
       box-shadow: inset 0 -4px 8px rgba(0,0,0,0.12);
     }
-
     .meta { margin-top: 12px; text-align: left; }
     .meta a { color: var(--label); text-decoration: underline; font-size: 14px; }
-
     #message {
       text-align: center;
       margin-top: 10px;
@@ -111,7 +100,6 @@
       color: red;
       font-weight: 500;
     }
-
     @media (max-width: 360px) {
       .card { width: 92%; padding: 16px; }
     }
@@ -162,13 +150,14 @@
       const name = document.getElementById('name').value.trim();
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value.trim();
-      const role = 'student'; // fixed role
+      const role = 'student';
 
       const messageBox = document.getElementById('message');
       messageBox.textContent = '';
 
       try {
-        const response = await fetch("http://localhost:5000/signup/student", {
+        // ✅ Corrected route
+        const response = await fetch("http://localhost:5000/signup", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, email, password, role })

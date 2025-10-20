@@ -52,7 +52,6 @@
     @media (max-width:520px){.welcome h1{font-size:32px}.thumb{width:72px;height:72px;flex:0 0 72px}.file-preview{height:140px}}
   </style>
 </head>
-
 <body>
   <header class="header">
     <div class="brand">KumonEduvault</div>
@@ -107,9 +106,7 @@
             </select>
           </div>
 
-          <!-- Hidden email field (auto-filled from MongoDB) -->
           <input type="hidden" id="email" name="email" />
-
           <button type="submit">Upload</button>
         </form>
       </div>
@@ -117,89 +114,90 @@
   </main>
 
   <script>
-    // Fetch student info from MongoDB via backend session or token
-    async function fetchStudentData() {
-      try {
-        const res = await fetch('http://localhost:5000/student-info', {
-          method: 'GET',
-          credentials: 'include' // sends cookies for session auth
-        });
-
-        if (!res.ok) throw new Error('Failed to fetch student info');
-
-        const student = await res.json();
-        document.getElementById('welcome-name').textContent = `Welcome, ${student.name || 'Student'}!`;
-        document.getElementById('email').value = student.email;
-      } catch (err) {
-        console.error('Error fetching student info:', err);
-        alert('Session expired or failed to load student data.');
-        window.location.href = 'Login.html';
+    document.addEventListener("DOMContentLoaded", () => {
+      const storedUser = localStorage.getItem("loggedInUser");
+      if (!storedUser) {
+        alert("Session expired or not found. Please log in again.");
+        window.location.href = "Login.html";
+        return;
       }
-    }
 
-    fetchStudentData();
+      const user = JSON.parse(storedUser);
+      if (!user.email || user.role !== "student") {
+        alert("Invalid session. Please log in again.");
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "Login.html";
+        return;
+      }
 
-    // Upload handler
-    const uploadForm = document.getElementById('upload-form');
-    const fileInput = document.getElementById('file');
-    const filePreview = document.getElementById('file-preview');
+      const now = Date.now();
+      if (now > user.expiresAt) {
+        alert("Session expired. Please log in again.");
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "Login.html";
+        return;
+      }
 
-    uploadForm.addEventListener('submit', async (e) => {
+      document.getElementById("welcome-name").textContent = `Welcome, ${user.email.split('@')[0]}!`;
+      document.getElementById("email").value = user.email;
+    });
+
+    const uploadForm = document.getElementById("upload-form");
+    const fileInput = document.getElementById("file");
+    const filePreview = document.getElementById("file-preview");
+
+    uploadForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
       const file = fileInput.files[0];
-      const fileName = document.getElementById('file-name').value;
-      const worksheetValue = document.getElementById('worksheet-val').value;
-      const instructor = document.getElementById('instructor').value;
-      const studentEmail = document.getElementById('email').value;
+      const fileName = document.getElementById("file-name").value;
+      const worksheetValue = document.getElementById("worksheet-val").value;
+      const instructor = document.getElementById("instructor").value;
+      const studentEmail = document.getElementById("email").value;
 
       if (!file || !fileName || !worksheetValue || !instructor || !studentEmail) {
-        alert('Please fill in all fields.');
+        alert("Please fill in all fields.");
         return;
       }
 
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('fileName', fileName);
-      formData.append('worksheetValue', worksheetValue);
-      formData.append('instructor', instructor);
-      formData.append('studentEmail', studentEmail);
+      formData.append("file", file);
+      formData.append("fileName", fileName);
+      formData.append("worksheetValue", worksheetValue);
+      formData.append("instructor", instructor);
+      formData.append("studentEmail", studentEmail);
 
       try {
-        const response = await fetch('http://localhost:5000/upload', {
-          method: 'POST',
-          body: formData
-        });
+        const response = await fetch("http://localhost:5000/upload", { method: "POST", body: formData });
         const result = await response.json();
 
         if (response.ok) {
           alert(result.message);
           uploadForm.reset();
-          filePreview.textContent = 'Preview Image';
-          filePreview.style.backgroundImage = '';
+          filePreview.textContent = "Preview Image";
+          filePreview.style.backgroundImage = "";
         } else {
-          alert(result.message || 'Upload failed');
+          alert(result.message || "Upload failed");
         }
-      } catch (err) {
-        console.error('[UPLOAD ERROR]', err);
-        alert('Server error during file upload');
+      } catch {
+        alert("Server error during file upload");
       }
     });
 
-    fileInput.addEventListener('change', function () {
+    fileInput.addEventListener("change", function () {
       const file = this.files[0];
-      if (file && file.type.startsWith('image/')) {
+      if (file && file.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onload = function (e) {
-          filePreview.innerHTML = '';
+          filePreview.innerHTML = "";
           filePreview.style.backgroundImage = `url(${e.target.result})`;
-          filePreview.style.backgroundSize = 'cover';
-          filePreview.style.backgroundPosition = 'center';
+          filePreview.style.backgroundSize = "cover";
+          filePreview.style.backgroundPosition = "center";
         };
         reader.readAsDataURL(file);
       } else {
-        filePreview.innerHTML = 'Preview Image';
-        filePreview.style.backgroundImage = '';
+        filePreview.innerHTML = "Preview Image";
+        filePreview.style.backgroundImage = "";
       }
     });
   </script>

@@ -90,39 +90,53 @@
     </div>
   </div>
 
-  <script>
-    const form = document.getElementById('loginForm');
-    const messageBox = document.getElementById('messageBox');
+<script>
+  const form = document.getElementById('loginForm');
+  const messageBox = document.getElementById('messageBox');
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      const role = 'student';
-      try {
-        const res = await fetch('http://localhost:5000/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, role })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          localStorage.setItem('loggedInUser', JSON.stringify({ email: data.email, role: role }));
-          messageBox.textContent = data.message;
-          messageBox.className = 'message success';
-          messageBox.style.display = 'block';
-          setTimeout(() => { window.location.href = data.redirect; }, 1500);
-        } else {
-          messageBox.textContent = data.message || 'Invalid credentials';
-          messageBox.className = 'message error';
-          messageBox.style.display = 'block';
-        }
-      } catch (err) {
-        messageBox.textContent = 'Server error. Please try again later.';
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const role = 'student';
+
+    try {
+      const res = await fetch('http://localhost:5000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, role })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        const now = new Date().getTime();
+        const expiresAt = now + 3 * 60 * 60 * 1000; // 3 hours in ms
+
+        localStorage.setItem('loggedInUser', JSON.stringify({
+          email: data.email,
+          role: role,
+          expiresAt: expiresAt
+        }));
+
+        messageBox.textContent = data.message;
+        messageBox.className = 'message success';
+        messageBox.style.display = 'block';
+
+        setTimeout(() => {
+          window.location.href = data.redirect;
+        }, 1500);
+      } else {
+        messageBox.textContent = data.message || 'Invalid credentials';
         messageBox.className = 'message error';
         messageBox.style.display = 'block';
       }
-    });
-  </script>
+    } catch (err) {
+      messageBox.textContent = 'Server error. Please try again later.';
+      messageBox.className = 'message error';
+      messageBox.style.display = 'block';
+    }
+  });
+</script>
+
 </body>
 </html>
