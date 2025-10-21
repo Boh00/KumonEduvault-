@@ -211,13 +211,7 @@
 </div>
 
 <script>
-  // Demo data + simple table rendering, sorting, search, pagination
-  const data = generateSample(45);
-  let filtered = [...data];
-  let page = 1;
-  const pageSize = 10;
-  let sortDesc = true;
-
+document.addEventListener('DOMContentLoaded', async () => {
   const tbody = document.getElementById('tbody');
   const countEl = document.getElementById('count');
   const qInput = document.getElementById('q');
@@ -227,91 +221,95 @@
   const nextBtn = document.getElementById('next');
   const pageNum = document.getElementById('pageNum');
 
-  function render(){
-    // apply search & date
+  // 🧠 Retrieve student info from localStorage
+  const email = localStorage.getItem('email');
+  const name = localStorage.getItem('name');
+  if (!email) {
+    alert('No user session found. Please log in again.');
+    window.location.href = 'StudentLoginPage.html';
+    return;
+  }
+
+  // Display user info
+  document.querySelector('.username').textContent = name || 'Student';
+  document.querySelector('.user-sub').textContent = email;
+  document.querySelector('.avatar').textContent = (name?.[0] || 'U').toUpperCase();
+
+  let data = [];
+  let filtered = [];
+  let page = 1;
+  const pageSize = 10;
+  let sortDesc = true;
+
+  // ✅ Fetch logs from backend
+  async function loadLogs() {
+    try {
+      const res = await fetch(`/activity/${email}`);
+      data = await res.json();
+      render();
+    } catch (err) {
+      console.error('Failed to fetch logs:', err);
+    }
+  }
+
+  function render() {
     const q = (qInput.value || '').trim().toLowerCase();
     const dateVal = dateFilter.value ? new Date(dateFilter.value) : null;
 
     filtered = data.filter(item => {
-      if(q){
-        const hay = (item.action + ' ' + (item.file||'') + ' ' + item.user + ' ' + (item.remarks||'')).toLowerCase();
-        if(!hay.includes(q)) return false;
+      if (q) {
+        const hay = (item.action + ' ' + (item.fileName || '') + ' ' + (item.remarks || '')).toLowerCase();
+        if (!hay.includes(q)) return false;
       }
-      if(dateVal){
-        const d = new Date(item.date);
-        if(d.toDateString() !== dateVal.toDateString()) return false;
+      if (dateVal) {
+        const d = new Date(item.timestamp);
+        if (d.toDateString() !== dateVal.toDateString()) return false;
       }
       return true;
     });
 
-    // sort by date
-    filtered.sort((a,b) => sortDesc ? new Date(b.date) - new Date(a.date) : new Date(a.date) - new Date(b.date));
+    filtered.sort((a,b) => sortDesc ? new Date(b.timestamp) - new Date(a.timestamp) : new Date(a.timestamp) - new Date(b.timestamp));
 
     const total = filtered.length;
     countEl.textContent = total;
 
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
-    if(page > totalPages) page = totalPages;
+    if (page > totalPages) page = totalPages;
     pageNum.textContent = page;
 
     const start = (page - 1) * pageSize;
     const view = filtered.slice(start, start + pageSize);
 
     tbody.innerHTML = '';
-    if(view.length === 0){
-      tbody.innerHTML = `<tr><td colspan="5" style="padding:18px;text-align:center;color:var(--muted)">No results</td></tr>`;
+    if (view.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="padding:18px;text-align:center;color:var(--muted)">No activity yet</td></tr>`;
       return;
     }
 
-    for(const row of view){
+    for (const row of view) {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="col-small">${new Date(row.date).toLocaleString()}</td>
+        <td class="col-small">${new Date(row.timestamp).toLocaleString()}</td>
         <td><strong>${escapeHtml(row.action)}</strong></td>
-        <td>${row.file ? `<span class="user-badge">${escapeHtml(row.file)}</span>` : '—'}</td>
-        <td>${escapeHtml(row.user)}</td>
+        <td>${row.fileName ? `<span class="user-badge">${escapeHtml(row.fileName)}</span>` : '—'}</td>
+        <td>${escapeHtml(row.studentEmail)}</td>
         <td class="remark">${escapeHtml(row.remarks || '')}</td>
       `;
       tbody.appendChild(tr);
     }
   }
 
-  // interactions
   qInput.addEventListener('input', () => { page = 1; render(); });
   dateFilter.addEventListener('change', () => { page = 1; render(); });
-  refreshBtn.addEventListener('click', () => { qInput.value=''; dateFilter.value=''; page=1; render(); });
-
+  refreshBtn.addEventListener('click', () => { qInput.value=''; dateFilter.value=''; page=1; render(); loadLogs(); });
   prevBtn.addEventListener('click', () => { if(page>1){ page--; render(); } });
   nextBtn.addEventListener('click', () => { const max = Math.ceil(filtered.length / pageSize); if(page<max){ page++; render(); } });
 
-  // click header to toggle sort
-  document.querySelector('.activity-table thead th.col-small').addEventListener('click', () => { sortDesc = !sortDesc; render(); });
-
-  // small helpers
   function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-  function generateSample(n=20){
-    const types = ['Login','Upload','Download','Grade posted','Comment','System'];
-    const files = ['worksheet1.pdf','math_quiz.docx','reading_passage.txt','achievement_test.pdf', ''];
-    const users = ['Ana Reyes','Carlos Dela Cruz','Liza Santos','Miguel Ramos','Instructor A'];
-    const remarks = ['Success','Auto-saved','Marked late','Needs review','—'];
-    const arr=[];
-    const now = Date.now();
-    for(let i=0;i<n;i++){
-      arr.push({
-        id: 'e'+i,
-        date: new Date(now - (i * 1000*60*60*5)), // spaced
-        action: types[Math.floor(Math.random()*types.length)],
-        file: files[Math.floor(Math.random()*files.length)],
-        user: users[Math.floor(Math.random()*users.length)],
-        remarks: remarks[Math.floor(Math.random()*remarks.length)]
-      });
-    }
-    return arr;
-  }
-
-  // initial render
-  render();
+  await loadLogs();
+});
 </script>
+
 </body>
 </html>

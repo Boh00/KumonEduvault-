@@ -83,8 +83,8 @@
       <ul>
         <li><a href="StudentHomePage.html">Home</a></li>
         <li><a href="#" class="active">Files</a></li>
-        <li><a href="#">Activity</a></li>
-        <li><a href="#">Resources</a></li>
+        <li><a href="ActivityLogPage(Student).html">Activity</a></li>
+        <li><a href="StudentsSettingsPage.html">Settings</a></li>
       </ul>
     </nav>
   </header>
@@ -196,69 +196,93 @@
     </div>
   </div>
 
-  <script>
+<script>
 const grid = document.getElementById('grid');
 const fileInput = document.getElementById('file-input');
 const uploadArea = document.getElementById('upload-area');
 const nameEdit = document.getElementById('name-edit');
 const categoryEdit = document.getElementById('category-edit');
-const filterType = document.getElementById('filter-type');
-const filterCategory = document.getElementById('filter-category');
-const filterSearch = document.getElementById('filter-search');
-const globalSearch = document.getElementById('global-search');
-const clearSearch = document.getElementById('clear-search');
-const selectAll = document.getElementById('select-all');
-const btnBulkDelete = document.getElementById('btn-bulk-delete');
-const btnExportMeta = document.getElementById('btn-export-meta');
-const modal = document.getElementById('modal');
-const modalClose = document.getElementById('modal-close');
-const previewThumb = document.getElementById('preview-thumb');
-const modalTitle = document.getElementById('modal-title');
-const modalType = document.getElementById('modal-type');
-const modalSize = document.getElementById('modal-size');
-const downloadBtn = document.getElementById('download-btn');
-const renameBtn = document.getElementById('rename-btn');
-const deleteBtn = document.getElementById('delete-btn');
-const modalCategory = document.getElementById('modal-category');
-const modalNotes = document.getElementById('modal-notes');
-const saveMeta = document.getElementById('save-meta');
 
 let files = [];
-let currentPreviewId = null;
+const user = JSON.parse(localStorage.getItem('loggedInUser'));
 
-function humanSize(n){
-  if(n < 1024) return n + ' B';
-  if(n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
-  return (n/(1024*1024)).toFixed(2) + ' MB';
+// ✅ Session validation
+if (!user || !user.email || Date.now() > user.expiresAt) {
+  alert('Session expired. Please log in again.');
+  localStorage.removeItem('loggedInUser');
+  window.location.href = 'Login.html';
 }
-function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 
-async function fetchFiles(){
-  try{
-    const res = await fetch('/api/files');
-    if(!res.ok) throw new Error('Failed to load files');
+// ✅ Fetch all uploaded files for this student
+async function fetchFiles() {
+  try {
+    const res = await fetch(`/uploads/${encodeURIComponent(user.email)}`);
+    if (!res.ok) throw new Error('Failed to load files');
     files = await res.json();
     renderGrid();
-  }catch(e){
-    grid.innerHTML = '<div style="grid-column:1/-1;padding:18px;background:#fff;border-radius:8px;border:1px solid #eee;text-align:center;color:#888">Failed to load files.</div>';
+  } catch (err) {
+    console.error(err);
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;padding:18px;background:#fff;border-radius:8px;border:1px solid #eee;text-align:center;color:#888">
+        Failed to load files.
+      </div>`;
   }
 }
 
-function renderGrid(){
+// ✅ Upload new file
+fileInput.addEventListener('change', e => {
+  if (e.target.files.length) uploadFile(e.target.files[0]);
+});
+
+async function uploadFile(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('studentEmail', user.email);
+  formData.append('fileName', nameEdit.value || file.name);
+  formData.append('worksheetValue', categoryEdit.value);
+  formData.append('instructor', user.name || 'Unknown');
+
+  try {
+    const res = await fetch('/upload', { method: 'POST', body: formData });
+    if (!res.ok) throw new Error('Upload failed');
+    await fetchFiles();
+    fileInput.value = '';
+    nameEdit.value = '';
+    categoryEdit.value = '';
+  } catch (e) {
+    alert('Upload failed.');
+  }
+}
+
+// ✅ Render grid of files
+function renderGrid() {
   grid.innerHTML = '';
-  if(!files.length){
-    grid.innerHTML = '<div style="grid-column:1/-1;padding:18px;background:#fff;border-radius:8px;border:1px solid #eee;text-align:center;color:#888">No files found</div>';
+  if (!files.length) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;padding:18px;background:#fff;border-radius:8px;border:1px solid #eee;text-align:center;color:#888">
+        No files found.
+      </div>`;
     return;
   }
-  files.forEach(f=>{
-    const card=document.createElement('div');
-    card.className='file-card';
-    card.dataset.id=f._id;
-    card.innerHTML=`
-      <div class="thumb">${renderThumb(f)}</div>
+
+  files.forEach(f => {
+    const card = document.createElement('div');
+    card.className = 'file-card';
+    card.dataset.id = f._id;
+
+    // Thumbnail (image or file type)
+    const thumb = f.fileType?.startsWith('image/')
+      ? `<img src="/file/${f._id}" style="width:100%;height:120px;object-fit:cover;border-radius:6px">`
+      : `<div style="font-weight:700">${f.fileType?.includes('pdf') ? 'PDF' : 'FILE'}</div>`;
+
+    card.innerHTML = `
+      <div class="thumb">${thumb}</div>
       <div class="meta">
-        <div><div class="fname">${escapeHtml(f.originalname||f.name)}</div><div class="fsmall">${f.category||'Uncategorized'}</div></div>
-        <div class="fsmall">${humanSize(f.size||0)}</div>
+        <div>
+          <div class="fname">${f.fileName || '(Unnamed file)'}</div>
+          <div class="fsmall">${f.worksheetValue || 'Uncategorized'}</div>
+        </div>
+        <div class="fsmall">${new Date(f.uploadedAt || f.uploadDate).toLocaleDateString()}</div>
       </div>
       <div class="card-actions">
         <button class="action-btn" data-action="download" data-id="${f._id}">Download</button>
@@ -267,44 +291,24 @@ function renderGrid(){
   });
 }
 
-function renderThumb(f){
-  if(f.mimetype && f.mimetype.startsWith('image/')) return `<img src="/uploads/${f.filename}" style="width:100%;height:120px;object-fit:cover;border-radius:6px">`;
-  if(f.mimetype && f.mimetype.includes('pdf')) return `<div style="font-weight:700">PDF</div>`;
-  return `<div style="font-weight:700">${(f.mimetype||'FILE').split('/')[0].toUpperCase()}</div>`;
-}
-
-fileInput.addEventListener('change', e=>{
-  if(e.target.files.length) uploadFile(e.target.files[0]);
-});
-
-async function uploadFile(file){
-  const formData=new FormData();
-  formData.append('file',file);
-  formData.append('studentEmail','student1@example.com');
-  formData.append('category',categoryEdit.value);
-  formData.append('name',nameEdit.value||file.name);
-  try{
-    const res=await fetch('/upload',{method:'POST',body:formData});
-    if(!res.ok) throw new Error('Upload failed');
-    await fetchFiles();
-    fileInput.value='';
-    nameEdit.value='';
-    categoryEdit.value='';
-  }catch(e){
-    alert('Upload failed.');
+// ✅ Handle downloads
+grid.addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (btn.dataset.action === 'download') {
+    window.open(`/file/${id}`, '_blank');
   }
-}
-
-grid.addEventListener('click',e=>{
-  const btn=e.target.closest('button');
-  if(!btn)return;
-  const id=btn.dataset.id;
-  if(btn.dataset.action==='download') window.open(`/uploads/${id}`,'_blank');
 });
 
-uploadArea.addEventListener('click',()=>fileInput.click());
+// ✅ Trigger file select dialog
+uploadArea.addEventListener('click', () => fileInput.click());
+
+// ✅ Load initial data
 fetchFiles();
 </script>
+
+
 
 </body>
 </html>

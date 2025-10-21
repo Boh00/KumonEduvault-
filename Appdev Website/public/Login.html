@@ -96,8 +96,8 @@
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
     const role = 'student';
 
     try {
@@ -106,31 +106,39 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, role })
       });
+
       const data = await res.json();
 
       if (res.ok) {
+        // ✅ Store session info in localStorage
         const now = new Date().getTime();
-        const expiresAt = now + 3 * 60 * 60 * 1000; // 3 hours in ms
+        const expiresAt = now + 3 * 60 * 60 * 1000; // 3 hours
 
         localStorage.setItem('loggedInUser', JSON.stringify({
           email: data.email,
+          name: data.name,
           role: role,
+          userId: data.userId,
           expiresAt: expiresAt
         }));
+
 
         messageBox.textContent = data.message;
         messageBox.className = 'message success';
         messageBox.style.display = 'block';
 
+        // ✅ Redirect to Student Home Page
         setTimeout(() => {
-          window.location.href = data.redirect;
+          window.location.href = 'StudentHomePage.html';
         }, 1500);
+
       } else {
         messageBox.textContent = data.message || 'Invalid credentials';
         messageBox.className = 'message error';
         messageBox.style.display = 'block';
       }
     } catch (err) {
+      console.error(err);
       messageBox.textContent = 'Server error. Please try again later.';
       messageBox.className = 'message error';
       messageBox.style.display = 'block';

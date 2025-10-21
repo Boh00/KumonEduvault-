@@ -114,7 +114,7 @@
   </main>
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       const storedUser = localStorage.getItem("loggedInUser");
       if (!storedUser) {
         alert("Session expired or not found. Please log in again.");
@@ -138,10 +138,28 @@
         return;
       }
 
-      document.getElementById("welcome-name").textContent = `Welcome, ${user.email.split('@')[0]}!`;
+      // ✅ Fetch student's full name from the backend
+      try {
+        const res = await fetch(`http://localhost:5000/student/${encodeURIComponent(user.email)}`);
+        if (res.ok) {
+          const studentData = await res.json();
+          if (studentData && studentData.name) {
+            document.getElementById("welcome-name").textContent = `Welcome, ${studentData.name}!`;
+          } else {
+            document.getElementById("welcome-name").textContent = `Welcome, ${user.email.split('@')[0]}!`;
+          }
+        } else {
+          document.getElementById("welcome-name").textContent = `Welcome, ${user.email.split('@')[0]}!`;
+        }
+      } catch (err) {
+        console.error("Error fetching student name:", err);
+        document.getElementById("welcome-name").textContent = `Welcome, ${user.email.split('@')[0]}!`;
+      }
+
       document.getElementById("email").value = user.email;
     });
 
+    // ✅ Upload form logic
     const uploadForm = document.getElementById("upload-form");
     const fileInput = document.getElementById("file");
     const filePreview = document.getElementById("file-preview");
@@ -168,19 +186,24 @@
       formData.append("studentEmail", studentEmail);
 
       try {
-        const response = await fetch("http://localhost:5000/upload", { method: "POST", body: formData });
+        const response = await fetch("http://localhost:5000/upload", { 
+          method: "POST", 
+          body: formData 
+        });
+
         const result = await response.json();
 
         if (response.ok) {
-          alert(result.message);
+          alert("✅ File uploaded successfully!");
           uploadForm.reset();
           filePreview.textContent = "Preview Image";
           filePreview.style.backgroundImage = "";
         } else {
-          alert(result.message || "Upload failed");
+          alert(result.message || "Upload failed. Check server logs for details.");
         }
-      } catch {
-        alert("Server error during file upload");
+      } catch (err) {
+        console.error(err);
+        alert("Server error during file upload.");
       }
     });
 
