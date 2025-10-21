@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Admin — Activity & Audit Log</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #10ceeb;
+    --card: #ffffff;
+    --muted: #5b6b74;
+    --accent: #0b74d1;
+    --danger: #e23b3b;
+    --ok: #16a34a;
+    --border: #e6eef6;
+    --radius: 12px;
+    --maxw: 1200px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:#0b1b25;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+
+  header{max-width:var(--maxw);margin:18px auto;padding:12px 18px;display:flex;align-items:center;justify-content:space-between}
+  .brand{font-weight:700;font-size:18px}
+  .toolbar{max-width:var(--maxw);margin:0 auto 12px;padding:0 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+
+  .panel{background:var(--card);border-radius:var(--radius);padding:12px;border:1px solid var(--border);box-shadow:0 6px 20px rgba(15,25,35,0.04)}
+  .wrap{max-width:var(--maxw);margin:0 auto 28px;padding:0 18px;display:grid;grid-template-columns:320px 1fr;gap:16px}
+  @media (max-width:980px){ .wrap{grid-template-columns:1fr} }
+
+  /* left filters */
+  .filters{display:flex;flex-direction:column;gap:10px}
+  label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+  input[type="text"], select, input[type="date"], .small-input {
+    width:100%;padding:9px;border-radius:8px;border:1px solid var(--border);font-size:14px;background:#fff;
+  }
+  .small-input { padding:8px 10px }
+  .btn{display:inline-block;padding:9px 12px;border-radius:8px;border:0;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+  .btn.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent)}
+  .btn.warn{background:var(--danger)}
+  .muted{color:var(--muted);font-size:13px}
+
+  /* right table area */
+  .actions-bar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap}
+  .left-actions{display:flex;gap:8px;align-items:center}
+  .right-actions{display:flex;gap:8px;align-items:center}
+
+  .table-wrap{overflow:auto;border-radius:8px;border:1px solid var(--border)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  thead th{background:#fbfdff;padding:12px;text-align:left;font-weight:700;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
+  tbody td{padding:10px;border-bottom:1px solid var(--border);vertical-align:middle;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  tbody tr:hover{background:#fbfbff}
+
+  .col-small{width:44px;text-align:center}
+  .col-time{width:160px}
+  .col-type{width:110px}
+  .col-user{width:150px}
+  .col-actions{width:150px;text-align:right}
+
+  .chip{display:inline-block;padding:6px 8px;border-radius:999px;border:1px solid var(--border);background:#fff;font-weight:700}
+  .sev-info{color:var(--accent)}
+  .sev-warn{color:#c67c00}
+  .sev-err{color:var(--danger)}
+
+  .page-controls{display:flex;gap:8px;align-items:center;margin-top:10px;justify-content:flex-end}
+  .tiny{font-size:13px;color:var(--muted)}
+
+  /* modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(6,10,14,0.45);display:none;align-items:center;justify-content:center;z-index:999}
+  .modal{width:720px;max-width:95%;background:var(--card);border-radius:12px;padding:16px;border:1px solid var(--border)}
+  .modal h3{margin:0 0 8px}
+  .modal pre{max-height:320px;overflow:auto;padding:8px;background:#f6f9fb;border-radius:8px;border:1px solid var(--border)}
+  .modal .row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+
+  /* responsive */
+  @media (max-width:660px){
+    thead th, tbody td{font-size:13px}
+    .col-user{display:none}
+    .col-type{display:none}
+    .col-actions{text-align:left}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Kumon — Admin Activity Log</div>
+  <div class="muted">Audit & events • Local demo</div>
+</header>
+
+<div class="toolbar" role="toolbar" aria-label="Global actions">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <button id="newEvent" class="btn">New Event</button>
+    <button id="exportAll" class="btn ghost">Export CSV</button>
+    <button id="clearLogs" class="btn ghost">Clear Logs</button>
+  </div>
+
+  <div style="display:flex;gap:8px;align-items:center">
+    <div class="tiny">Showing <strong id="totalCount">0</strong></div>
+  </div>
+</div>
+
+<main class="wrap" role="main">
+  <!-- LEFT: filters -->
+  <aside class="panel" aria-label="Filters">
+    <h3 style="margin-top:0">Filters</h3>
+    <div class="filters">
+      <div>
+        <label for="filterType">Type</label>
+        <select id="filterType">
+          <option value="">All</option>
+          <option value="system">System</option>
+          <option value="upload">Upload</option>
+          <option value="test">Test</option>
+          <option value="grade">Grade</option>
+          <option value="message">Message</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="filterSeverity">Severity</label>
+        <select id="filterSeverity">
+          <option value="">All</option>
+          <option value="info">Info</option>
+          <option value="warn">Warning</option>
+          <option value="error">Error</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="filterUser">User</label>
+        <select id="filterUser"><option value="">All users</option></select>
+      </div>
+
+      <div>
+        <label for="dateFrom">Date from</label>
+        <input id="dateFrom" type="date">
+      </div>
+
+      <div>
+        <label for="dateTo">Date to</label>
+        <input id="dateTo" type="date">
+      </div>
+
+      <div>
+        <label for="q">Text search</label>
+        <input id="q" type="text" placeholder="Search message, file, remarks...">
+      </div>
+
+      <div style="display:flex;gap:8px">
+        <button id="apply" class="btn">Apply</button>
+        <button id="reset" class="btn ghost">Reset</button>
+      </div>
+
+      <hr>
+
+      <div>
+        <label class="tiny">Visible columns</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label><input type="checkbox" id="toggleTarget" checked> Target</label>
+          <label><input type="checkbox" id="toggleRemarks" checked> Remarks</label>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- RIGHT: table -->
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <div class="panel">
+      <div class="actions-bar">
+        <div class="left-actions">
+          <label style="display:flex;align-items:center;gap:8px"><input id="selectAll" type="checkbox"> Select</label>
+          <button id="bulkDelete" class="btn ghost">Delete</button>
+          <button id="bulkExport" class="btn ghost">Export selected</button>
+        </div>
+
+        <div class="right-actions">
+          <label class="tiny">Per page</label>
+          <select id="perPage" class="small-input" style="width:80px">
+            <option>10</option><option>20</option><option>50</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="logTable" aria-label="Activity log table">
+          <thead>
+            <tr>
+              <th class="col-small"></th>
+              <th class="col-time">Date</th>
+              <th class="col-type">Type</th>
+              <th class="col-user">User</th>
+              <th class="col-target">Target</th>
+              <th>Remarks</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <div class="tiny" id="pageInfo">Page 1</div>
+        <div class="page-controls">
+          <button id="prevPage" class="btn ghost">Prev</button>
+          <button id="nextPage" class="btn ghost">Next</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- modal -->
+<div class="modal-backdrop" id="modal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <button id="modalClose" style="float:right;border:none;background:transparent;font-size:20px;cursor:pointer">×</button>
+    <h3 id="modalTitle">Event details</h3>
+    <div class="row"><label class="muted" style="min-width:80px">Date</label><div id="mDate" class="muted"></div></div>
+    <div class="row"><label class="muted" style="min-width:80px">Type</label><div id="mType"></div></div>
+    <div class="row"><label class="muted" style="min-width:80px">User</label><div id="mUser"></div></div>
+    <div class="row"><label class="muted" style="min-width:80px">Target</label><div id="mTarget"></div></div>
+    <div style="margin-top:8px"><label class="muted">Admin note</label><textarea id="mNote" style="width:100%;height:80px;padding:8px;border:1px solid var(--border);border-radius:8px"></textarea></div>
+    <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">
+      <button id="mSave" class="btn">Save</button>
+      <button id="mDelete" class="btn warn">Delete</button>
+    </div>
+    <h4 style="margin-top:12px">Event JSON</h4>
+    <pre id="mJson" style="white-space:pre-wrap"></pre>
+  </div>
+</div>
+
+<script>
+  // Admin Activity Log - client-only demo
+  const STORAGE_KEY = 'admin_activity_v1';
+  let events = load() || [];
+  let page = 1;
+  let perPage = parseInt(document.getElementById('perPage').value,10);
+  let filters = {};
+
+  // elements
+  const tbody = document.querySelector('#logTable tbody');
+  const totalCountEl = document.getElementById('totalCount');
+  const filterType = document.getElementById('filterType');
+  const filterSeverity = document.getElementById('filterSeverity');
+  const filterUser = document.getElementById('filterUser');
+  const dateFrom = document.getElementById('dateFrom');
+  const dateTo = document.getElementById('dateTo');
+  const q = document.getElementById('q');
+  const applyBtn = document.getElementById('apply');
+  const resetBtn = document.getElementById('reset');
+  const selectAll = document.getElementById('selectAll');
+  const perPageSel = document.getElementById('perPage');
+  const toggleTarget = document.getElementById('toggleTarget');
+  const toggleRemarks = document.getElementById('toggleRemarks');
+
+  const modal = document.getElementById('modal');
+  const modalClose = document.getElementById('modalClose');
+  const mDate = document.getElementById('mDate'), mType = document.getElementById('mType'),
+        mUser = document.getElementById('mUser'), mTarget = document.getElementById('mTarget'),
+        mNote = document.getElementById('mNote'), mJson = document.getElementById('mJson'),
+        mSave = document.getElementById('mSave'), mDelete = document.getElementById('mDelete');
+
+  // init sample data if empty
+  if(!events || events.length === 0){
+    events = generateSample(82);
+    save();
+  }
+
+  // populate user filter
+  function populateUsers(){
+    const users = Array.from(new Set(events.map(e => e.user).filter(Boolean))).sort();
+    filterUser.innerHTML = '<option value="">All users</option>';
+    users.forEach(u => { const opt = document.createElement('option'); opt.value=u; opt.textContent=u; filterUser.appendChild(opt); });
+  }
+
+  populateUsers();
+
+  // event bindings
+  applyBtn.addEventListener('click', ()=>{ page=1; render(); });
+  resetBtn.addEventListener('click', ()=>{ filterType.value=''; filterSeverity.value=''; filterUser.value=''; dateFrom.value=''; dateTo.value=''; q.value=''; page=1; render(); });
+  perPageSel.addEventListener('change', ()=>{ perPage = parseInt(perPageSel.value,10); page=1; render(); });
+  selectAll.addEventListener('change', ()=>{ document.querySelectorAll('.row-chk').forEach(cb => cb.checked = selectAll.checked); });
+  document.getElementById('bulkDelete').addEventListener('click', bulkDelete);
+  document.getElementById('bulkExport').addEventListener('click', bulkExport);
+  document.getElementById('exportAll').addEventListener('click', exportAll);
+  document.getElementById('newEvent').addEventListener('click', createEvent);
+  document.getElementById('clearLogs').addEventListener('click', ()=>{ if(confirm('Clear all logs?')){ events=[]; save(); render(); }});
+  document.getElementById('prevPage').addEventListener('click', ()=>{ if(page>1) { page--; render(); }});
+  document.getElementById('nextPage').addEventListener('click', ()=>{ const max = Math.ceil(filteredEvents().length / perPage); if(page < max){ page++; render(); }});
+  toggleTarget.addEventListener('change', ()=> toggleColumn('col-target', toggleTarget.checked));
+  toggleRemarks.addEventListener('change', ()=> toggleColumn(4, toggleRemarks.checked)); // remarks is 6th column; we'll hide via index if needed
+
+  // modal
+  modalClose.addEventListener('click', closeModal);
+  mSave.addEventListener('click', saveModalNote);
+  mDelete.addEventListener('click', ()=>{ if(confirm('Delete this event?')){ deleteEvent(modal.dataset.id); closeModal(); } });
+
+  // helpers
+  function uid(prefix='e'){ return prefix + Math.random().toString(36).slice(2,9); }
+  function now(){ return Date.now(); }
+  function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(events)); populateUsers(); }
+  function load(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch(e){ return null; } }
+  function humanDate(ts){ return new Date(ts).toLocaleString(); }
+
+  function filteredEvents(){
+    let list = events.slice().sort((a,b)=> b.ts - a.ts);
+    const t = filterType.value;
+    const s = filterSeverity.value;
+    const u = filterUser.value;
+    const from = dateFrom.value ? new Date(dateFrom.value).setHours(0,0,0,0) : null;
+    const to = dateTo.value ? new Date(dateTo.value).setHours(23,59,59,999) : null;
+    const qv = (q.value || '').toLowerCase().trim();
+
+    list = list.filter(ev => {
+      if(t && ev.type !== t) return false;
+      if(s && ev.severity !== s) return false;
+      if(u && ev.user !== u) return false;
+      if(from && ev.ts < from) return false;
+      if(to && ev.ts > to) return false;
+      if(qv){
+        const hay = (ev.note || '') + ' ' + (ev.target||'') + ' ' + ev.type + ' ' + ev.user + ' ' + (ev.remarks||'') + ' ' + (ev.action||'');
+        if(!hay.toLowerCase().includes(qv)) return false;
+      }
+      return true;
+    });
+
+    return list;
+  }
+
+  function render(){
+    const list = filteredEvents();
+    totalCountEl.textContent = events.length;
+    const start = (page - 1) * perPage;
+    const pageSlice = list.slice(start, start + perPage);
+    tbody.innerHTML = '';
+
+    pageSlice.forEach(ev => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="col-small"><input class="row-chk" type="checkbox" data-id="${ev.id}"></td>
+        <td class="col-time" title="${humanDate(ev.ts)}">${humanDate(ev.ts)}</td>
+        <td class="col-type">${ev.type || ''}</td>
+        <td class="col-user">${ev.user || ''}</td>
+        <td class="col-target">${ev.target || ''}</td>
+        <td title="${escapeHtml(ev.remarks || '')}">${(ev.remarks || '').slice(0,80)}</td>
+        <td class="col-actions"><button class="btn ghost view" data-id="${ev.id}">View</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // wire view buttons
+    tbody.querySelectorAll('button.view').forEach(b => b.addEventListener('click', (e)=> openModal(e.currentTarget.dataset.id)));
+    tbody.querySelectorAll('.row-chk').forEach(cb => cb.addEventListener('change', ()=>{ selectAll.checked = document.querySelectorAll('.row-chk:checked').length === document.querySelectorAll('.row-chk').length; }));
+
+    // page info
+    const totalFiltered = list.length;
+    const pages = Math.max(1, Math.ceil(totalFiltered / perPage));
+    document.getElementById('pageInfo').textContent = `Page ${page} / ${pages} • ${totalFiltered} match`;
+
+    // show/hide columns per toggles
+    toggleColumn('col-target', toggleTarget.checked);
+    toggleColumn(5, toggleRemarks.checked); // 0-based index: remarks is 5
+  }
+
+  // column toggle helper
+  function toggleColumn(selectorOrIndex, show=true){
+    if(typeof selectorOrIndex === 'string'){
+      const colEls = document.querySelectorAll('.' + selectorOrIndex);
+      colEls.forEach(el => el.style.display = show ? '' : 'none');
+    } else {
+      // index-based hiding of column cells (thead + each tbody row)
+      const idx = selectorOrIndex;
+      const ths = document.querySelectorAll('#logTable thead th');
+      if(ths[idx]) ths[idx].style.display = show ? '' : 'none';
+      document.querySelectorAll('#logTable tbody tr').forEach(tr => {
+        const td = tr.children[idx];
+        if(td) td.style.display = show ? '' : 'none';
+      });
+    }
+  }
+
+  // modal functions
+  function openModal(id){
+    const ev = events.find(x => x.id === id);
+    if(!ev) return;
+    modal.dataset.id = id;
+    document.getElementById('modalTitle').textContent = ev.action || ev.type || 'Event';
+    mDate.textContent = humanDate(ev.ts);
+    mType.textContent = ev.type;
+    mUser.textContent = ev.user;
+    mTarget.textContent = ev.target || '—';
+    mNote.value = ev.note || '';
+    mJson.textContent = JSON.stringify(ev, null, 2);
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden','false');
+  }
+  function closeModal(){
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden','true');
+    modal.dataset.id = '';
+  }
+  function saveModalNote(){
+    const id = modal.dataset.id;
+    const ev = events.find(x=>x.id === id);
+    if(!ev) return;
+    ev.note = mNote.value.trim();
+    save(); render(); closeModal();
+  }
+
+  // actions
+  function bulkDelete(){
+    const checked = Array.from(document.querySelectorAll('.row-chk:checked')).map(cb => cb.dataset.id);
+    if(checked.length === 0){ alert('No items selected'); return; }
+    if(!confirm(`Delete ${checked.length} event(s)?`)) return;
+    events = events.filter(e => !checked.includes(e.id));
+    save(); render();
+  }
+  function bulkExport(){
+    const checked = Array.from(document.querySelectorAll('.row-chk:checked')).map(cb => cb.dataset.id);
+    if(checked.length === 0){ alert('No items selected'); return; }
+    const rows = [['id','timestamp','type','user','target','remarks','note']];
+    events.filter(e => checked.includes(e.id)).forEach(e => rows.push([e.id, new Date(e.ts).toISOString(), e.type, e.user, e.target||'', e.remarks||'', e.note||'']));
+    downloadCSV(rows, 'selected_events.csv');
+  }
+  function exportAll(){
+    const rows = [['id','timestamp','type','user','target','remarks','note']];
+    events.forEach(e => rows.push([e.id, new Date(e.ts).toISOString(), e.type, e.user, e.target||'', e.remarks||'', e.note||'']));
+    downloadCSV(rows, 'events_export.csv');
+  }
+
+  function downloadCSV(rows, filename='export.csv'){
+    const csv = rows.map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+  }
+
+  function deleteEvent(id){
+    events = events.filter(e => e.id !== id);
+    save(); render();
+  }
+
+  // quick create event prompt (demo)
+  function createEvent(){
+    const type = prompt('Type (system/upload/test/grade/message)', 'system');
+    if(!type) return;
+    const user = prompt('User (name/email)', 'admin@kumon.edu');
+    const target = prompt('Target (file/student)', 'worksheet1.pdf');
+    const remarks = prompt('Remarks', 'Demo event');
+    const ev = {
+      id: uid(),
+      ts: Date.now(),
+      type: type,
+      user: user,
+      target: target,
+      remarks: remarks,
+      note: '',
+      action: (type + ' event')
+    };
+    events.unshift(ev);
+    save(); render();
+  }
+
+  // small utility
+  function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  // sample data generator
+  function generateSample(n=50){
+    const types = ['system','upload','test','grade','message'];
+    const severities = ['info','warn','error'];
+    const users = ['admin@kumon.edu','inst1@school.edu','inst2@school.edu','student1@school.edu','student2@school.edu'];
+    const files = ['worksheet1.pdf','math_q2.pdf','reading.txt','achievement_test.pdf',''];
+    const remarks = ['Upload completed','Auto-graded','Manual grade posted','Student message','Scheduled maintenance'];
+    const arr = [];
+    const now = Date.now();
+    for(let i=0;i<n;i++){
+      arr.push({
+        id: uid(),
+        ts: now - i * 1000 * 60 * (Math.floor(Math.random()*120)),
+        type: types[Math.floor(Math.random()*types.length)],
+        severity: severities[Math.floor(Math.random()*severities.length)],
+        user: users[Math.floor(Math.random()*users.length)],
+        target: files[Math.floor(Math.random()*files.length)],
+        remarks: remarks[Math.floor(Math.random()*remarks.length)],
+        note: Math.random()>0.8 ? 'Requires review' : '',
+        action: 'Audit entry ' + (i+1)
+      });
+    }
+    return arr;
+  }
+
+  // initial render
+  let filtered = filteredEvents();
+  render();
+
+  // small convenience: add keyboard shortcut to create event
+  document.addEventListener('keydown', e => { if((e.ctrlKey||e.metaKey) && e.key.toLowerCase() === 'n'){ e.preventDefault(); createEvent(); }});
+</script>
+</body>
+</html>
