@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Admin — Threat Detection & Security</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#10ceeb;
+    --panel:#ffffff;
+    --muted:#6b7280;
+    --accent:#0b74d1;
+    --danger:#ef4444;
+    --ok:#16a34a;
+    --shadow: 0 10px 30px rgba(10,20,30,0.06);
+    --radius:12px;
+    --maxw:1200px;
+    font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:#0b1220;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer}
+
+  /* Layout */
+  .app{display:flex;min-height:100vh}
+  nav.sidebar{
+    width:200px;background:#e9ecef;padding:28px 18px;border-right:1px solid rgba(11,17,20,0.03);
+  }
+  nav.sidebar .logo{font-weight:800;font-size:18px;margin-bottom:10px}
+  nav.sidebar a{display:block;padding:10px 12px;border-radius:8px;color:#111827;text-decoration:none;font-weight:600;margin-bottom:6px}
+  nav.sidebar a.active{background:#fff;box-shadow:var(--shadow)}
+
+  main.container{flex:1;padding:28px;max-width:var(--maxw);margin:0 auto;width:100%}
+
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  header .title{font-size:22px;font-weight:800}
+  header .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+  .controls input[type="search"], .controls select{padding:10px 12px;border-radius:8px;border:1px solid rgba(11,17,20,0.06);min-width:200px}
+  .controls .btn{padding:10px 12px;border-radius:8px;border:0;background:var(--accent);color:white;font-weight:700}
+  .controls .btn.ghost{background:#fff;border:1px solid rgba(11,17,20,0.06);color:#0b1220}
+  .controls .btn.warn{background:var(--danger)}
+
+  /* main cards */
+  .card{background:var(--panel);padding:16px;border-radius:12px;box-shadow:var(--shadow);border:1px solid rgba(11,17,20,0.02);margin-bottom:16px}
+
+  /* table */
+  .table-wrap{overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  thead th{padding:12px 10px;text-align:left;color:var(--muted);font-weight:700;border-bottom:1px solid rgba(11,17,20,0.04)}
+  tbody td{padding:12px 10px;border-bottom:1px solid rgba(11,17,20,0.03);vertical-align:middle}
+  tbody tr:hover{background:linear-gradient(90deg,rgba(11,17,20,0.02),transparent)}
+  .col-actions{width:220px;text-align:right}
+
+  .muted{color:var(--muted)}
+  .chip{display:inline-block;padding:6px 8px;border-radius:999px;background:rgba(11,17,20,0.04);font-weight:700}
+  .pill-yes{background:var(--ok);color:white;padding:6px 8px;border-radius:999px;font-weight:700}
+  .pill-no{background:#f3f4f6;color:#111827;padding:6px 8px;border-radius:999px;font-weight:700}
+
+  .small{font-size:13px;color:var(--muted)}
+
+  /* action buttons */
+  .action-btn{padding:8px 10px;border-radius:8px;border:1px solid rgba(11,17,20,0.06);background:transparent;margin-left:6px}
+  .action-btn.quarantine{background:#fff3f2;border-color:rgba(239,68,68,0.12);color:var(--danger)}
+  .action-btn.release{background:#effaf3;border-color:rgba(16,185,129,0.12);color:var(--ok)}
+
+  /* recent actions table smaller */
+  .recent table thead th, .recent table tbody td{font-size:13px;padding:10px}
+
+  /* modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.45);display:none;align-items:center;justify-content:center;z-index:90}
+  .modal{width:720px;max-width:96%;background:var(--panel);padding:18px;border-radius:10px;border:1px solid rgba(11,17,20,0.03)}
+  .modal h3{margin:0 0 8px}
+  .modal .row{display:flex;gap:12px;margin-top:8px}
+  .modal .row .col{flex:1}
+  .modal pre{background:#f8fafc;padding:12px;border-radius:8px;overflow:auto;border:1px solid rgba(11,17,20,0.02)}
+  .modal .buttons{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+
+  /* responsive */
+  @media (max-width:980px){
+    nav.sidebar{display:none}
+    .modal{width:92%}
+    .col-actions{width:160px}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <nav class="sidebar" aria-label="Main navigation">
+    <div class="logo">Kumon Admin</div>
+    <a href="AdminHomePage.html">Dashboard</a>
+    <a href="AdminFileManagement.html">Files</a>
+    <a href="#" class="active">Threats</a>
+    <a href="AdminPermissionPage.html">Permissions</a>
+    <a href="ActivityLogPage(Admin).html">Logs</a>
+  </nav>
+
+  <main class="container" aria-label="Threat Detection & Security">
+    <header class="top">
+      <div>
+        <div class="title">Threat Detection & Security</div>
+        <div class="small">Monitor threats, quarantine files, and review security actions</div>
+      </div>
+
+      <div class="controls">
+        <select id="filterThreat" title="Filter by threat type">
+          <option value="">All threat types</option>
+        </select>
+
+        <select id="filterQuarantine" title="Filter quarantined">
+          <option value="">All</option>
+          <option value="yes">Quarantined</option>
+          <option value="no">Not quarantined</option>
+        </select>
+
+        <input id="search" type="search" placeholder="Search by file name or threat details">
+
+        <button class="btn ghost" id="exportThreats">Export threats</button>
+        <button class="btn ghost" id="exportActions">Export actions</button>
+      </div>
+    </header>
+
+    <!-- threats table -->
+    <section class="card" aria-labelledby="threatsTitle">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <strong id="threatsTitle">Threats Table</strong>
+          <div class="muted small">Detected threats from recent scans</div>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center">
+          <label class="small"><input id="selectAll" type="checkbox"> Select all</label>
+          <button class="action-btn" id="bulkQuarantine">Quarantine selected</button>
+          <button class="action-btn" id="bulkDelete">Delete selected</button>
+        </div>
+      </div>
+
+      <div class="table-wrap" style="margin-top:12px">
+        <table id="threatsTable" aria-describedby="threatsTitle">
+          <thead>
+            <tr>
+              <th style="width:48px"></th>
+              <th>File Name</th>
+              <th>Threat Type</th>
+              <th>Scan Date</th>
+              <th>Quarantined</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="threatsBody">
+            <!-- rows via JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- recent security actions -->
+    <section class="card recent">
+      <strong>Recent Security Actions</strong>
+      <div class="muted small" style="margin-bottom:8px">Audit trail of quarantine/release/delete actions</div>
+      <div class="table-wrap">
+        <table id="actionsTable">
+          <thead>
+            <tr><th>File Name</th><th>Action</th><th>User</th><th>Date</th></tr>
+          </thead>
+          <tbody id="actionsBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- view modal -->
+<div class="modal-backdrop" id="modal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h3 id="modalTitle">Threat details</h3>
+    <div class="row">
+      <div class="col">
+        <div class="small muted">File</div>
+        <div id="mFile" style="font-weight:700"></div>
+      </div>
+      <div class="col">
+        <div class="small muted">Detected</div>
+        <div id="mType" style="font-weight:700"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="small muted">Scan date</div>
+      <div id="mDate"></div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="small muted">Details</div>
+      <pre id="mDetails" style="white-space:pre-wrap"></pre>
+    </div>
+
+    <div class="buttons">
+      <button class="action-btn" id="mQuarantine">Quarantine</button>
+      <button class="action-btn" id="mRelease">Release</button>
+      <button class="action-btn" id="mDelete">Delete</button>
+      <button class="btn ghost" id="mClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Threat Detection page — demo client-side app
+   - data saved to localStorage
+   - sample data created on first load
+*/
+
+const THREATS_KEY = 'admin_threats_v1';
+const ACTIONS_KEY = 'admin_threat_actions_v1';
+
+/* DOM refs */
+const filterThreat = document.getElementById('filterThreat');
+const filterQuarantine = document.getElementById('filterQuarantine');
+const searchInput = document.getElementById('search');
+const threatsBody = document.getElementById('threatsBody');
+const actionsBody = document.getElementById('actionsBody');
+const threatsTable = document.getElementById('threatsTable');
+
+const exportThreatsBtn = document.getElementById('exportThreats');
+const exportActionsBtn = document.getElementById('exportActions');
+
+const selectAllCb = document.getElementById('selectAll');
+const bulkQuarantineBtn = document.getElementById('bulkQuarantine');
+const bulkDeleteBtn = document.getElementById('bulkDelete');
+
+/* modal refs */
+const modalWrap = document.getElementById('modal');
+const mFile = document.getElementById('mFile');
+const mType = document.getElementById('mType');
+const mDate = document.getElementById('mDate');
+const mDetails = document.getElementById('mDetails');
+const mQuarantine = document.getElementById('mQuarantine');
+const mRelease = document.getElementById('mRelease');
+const mDelete = document.getElementById('mDelete');
+const mClose = document.getElementById('mClose');
+
+let threats = load(THREATS_KEY) || sampleThreats();
+let actions = load(ACTIONS_KEY) || [];
+
+/* initialize UI */
+populateThreatFilter();
+renderThreats();
+renderActions();
+
+/* event wiring */
+filterThreat.addEventListener('change', renderThreats);
+filterQuarantine.addEventListener('change', renderThreats);
+searchInput.addEventListener('input', renderThreats);
+selectAllCb.addEventListener('change', toggleSelectAll);
+bulkQuarantineBtn.addEventListener('click', bulkQuarantine);
+bulkDeleteBtn.addEventListener('click', bulkDelete);
+exportThreatsBtn.addEventListener('click', exportThreatsCSV);
+exportActionsBtn.addEventListener('click', exportActionsCSV);
+
+mClose.addEventListener('click', closeModal);
+mQuarantine.addEventListener('click', ()=> modalAction('quarantine'));
+mRelease.addEventListener('click', ()=> modalAction('release'));
+mDelete.addEventListener('click', ()=> modalAction('delete'));
+
+/* helper functions */
+
+function load(key){ try{ return JSON.parse(localStorage.getItem(key)); }catch(e){ return null; } }
+function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+function sampleThreats(){
+  const now = Date.now();
+  const sample = [
+    { id: 't1', file: 'Finance.xlsx', type: 'Malware', scanDate: tsDaysAgo(0), details: 'Detected: Troj.Ransom variant; infected macro content.', quarantined: true },
+    { id: 't2', file: 'Report_Q1.pdf', type: 'Suspicious Script', scanDate: tsDaysAgo(1), details: 'Embedded script attempting network access.', quarantined: false },
+    { id: 't3', file: 'Homework.docx', type: 'Virus', scanDate: tsDaysAgo(2), details: 'Known virus signature found in document macros.', quarantined: true },
+    { id: 't4', file: 'image_upload.png', type: 'Potentially Unwanted', scanDate: tsDaysAgo(3), details: 'Image metadata contains unexpected payload.', quarantined: false }
+  ];
+  save(THREATS_KEY, sample);
+  return sample;
+}
+function tsDaysAgo(days){ const d = new Date(); d.setDate(d.getDate() - days); return d.toISOString().slice(0,10); }
+
+function populateThreatFilter(){
+  const types = Array.from(new Set(threats.map(t=>t.type))).sort();
+  filterThreat.innerHTML = '<option value="">All threat types</option>' + types.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+}
+
+function renderThreats(){
+  const q = (searchInput.value||'').toLowerCase().trim();
+  const typeFilter = filterThreat.value;
+  const quarantineFilter = filterQuarantine.value;
+
+  const rows = threats.filter(t=>{
+    if(typeFilter && t.type !== typeFilter) return false;
+    if(quarantineFilter === 'yes' && !t.quarantined) return false;
+    if(quarantineFilter === 'no' && t.quarantined) return false;
+    if(q && !(t.file.toLowerCase().includes(q) || t.details.toLowerCase().includes(q) || t.type.toLowerCase().includes(q))) return false;
+    return true;
+  });
+
+  threatsBody.innerHTML = rows.map(t => `
+    <tr data-id="${t.id}">
+      <td><input class="rowSel" type="checkbox" data-id="${t.id}"></td>
+      <td><div style="font-weight:700">${escapeHtml(t.file)}</div></td>
+      <td>${escapeHtml(t.type)}</td>
+      <td class="small">${escapeHtml(t.scanDate)}</td>
+      <td>${t.quarantined ? '<span class="pill-yes">Yes</span>' : '<span class="pill-no">No</span>'}</td>
+      <td class="col-actions">
+        <button class="action-btn" data-action="view" data-id="${t.id}">View</button>
+        ${t.quarantined ? `<button class="action-btn release" data-action="release" data-id="${t.id}">Release</button>` : `<button class="action-btn quarantine" data-action="quarantine" data-id="${t.id}">Quarantine</button>`}
+        <button class="action-btn" data-action="delete" data-id="${t.id}">Delete</button>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="6" class="muted">No threats found</td></tr>';
+
+  // wire action buttons and row checkboxes
+  document.querySelectorAll('#threatsBody .action-btn').forEach(btn => btn.addEventListener('click', handleRowAction));
+  document.querySelectorAll('.rowSel').forEach(cb => cb.addEventListener('change', updateSelectAllState));
+  selectAllCb.checked = false;
+}
+
+function renderActions(){
+  // show latest 12 actions
+  const recent = (actions || []).slice().reverse().slice(0,12);
+  actionsBody.innerHTML = recent.map(a => `
+    <tr>
+      <td>${escapeHtml(a.file)}</td>
+      <td>${escapeHtml(a.action)}</td>
+      <td>${escapeHtml(a.user)}</td>
+      <td class="small">${escapeHtml(a.date)}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="4" class="muted">No recent actions</td></tr>';
+}
+
+function handleRowAction(e){
+  const id = e.currentTarget.dataset.id;
+  const action = e.currentTarget.dataset.action;
+  if(action === 'view') return openModalFor(id);
+  if(action === 'quarantine') return doQuarantine(id, true);
+  if(action === 'release') return doQuarantine(id, false);
+  if(action === 'delete') return doDelete(id);
+}
+
+function openModalFor(id){
+  const t = threats.find(x=>x.id === id);
+  if(!t) return;
+  mFile.textContent = t.file;
+  mType.textContent = t.type;
+  mDate.textContent = t.scanDate;
+  mDetails.textContent = t.details;
+  // toggle modal action buttons visibility
+  mQuarantine.style.display = t.quarantined ? 'none' : '';
+  mRelease.style.display = t.quarantined ? '' : 'none';
+  mDelete.style.display = '';
+  modalWrap.style.display = 'flex';
+  modalWrap.setAttribute('aria-hidden','false');
+  modalWrap.dataset.id = id;
+}
+
+function closeModal(){
+  modalWrap.style.display = 'none';
+  modalWrap.setAttribute('aria-hidden','true');
+  delete modalWrap.dataset.id;
+}
+mClose.addEventListener('click', closeModal);
+modalWrap.addEventListener('click', (e)=> { if(e.target === modalWrap) closeModal(); });
+
+function modalAction(type){
+  const id = modalWrap.dataset.id;
+  if(!id) return;
+  if(type === 'quarantine') doQuarantine(id, true);
+  if(type === 'release') doQuarantine(id, false);
+  if(type === 'delete') doDelete(id);
+  closeModal();
+}
+
+/* Quarantine / release */
+function doQuarantine(id, setQuarantine){
+  const t = threats.find(x=>x.id === id);
+  if(!t) return;
+  t.quarantined = !!setQuarantine;
+  save(THREATS_KEY, threats);
+  // record action
+  recordAction(t.file, setQuarantine ? 'Quarantined' : 'Released', 'Admin User');
+  renderThreats();
+  renderActions();
+  populateThreatFilter();
+}
+
+/* Delete threat */
+function doDelete(id){
+  const t = threats.find(x=>x.id === id);
+  if(!t) return;
+  if(!confirm(`Delete threat entry for "${t.file}"? This removes the record.`)) return;
+  threats = threats.filter(x=>x.id !== id);
+  save(THREATS_KEY, threats);
+  recordAction(t.file, 'Deleted', 'Admin User');
+  renderThreats();
+  renderActions();
+  populateThreatFilter();
+}
+
+/* Bulk operations */
+function getSelectedIds(){
+  return Array.from(document.querySelectorAll('.rowSel:checked')).map(cb=>cb.dataset.id);
+}
+function toggleSelectAll(e){
+  document.querySelectorAll('.rowSel').forEach(cb => cb.checked = e.target.checked);
+}
+function updateSelectAllState(){
+  const all = Array.from(document.querySelectorAll('.rowSel'));
+  const checked = all.filter(cb=>cb.checked).length;
+  selectAllCb.checked = all.length && (checked === all.length);
+}
+function bulkQuarantine(){
+  const ids = getSelectedIds(); if(!ids.length){ alert('No threats selected'); return; }
+  if(!confirm(`Quarantine ${ids.length} selected?`)) return;
+  ids.forEach(id=>{
+    const t = threats.find(x=>x.id === id);
+    if(t && !t.quarantined){
+      t.quarantined = true;
+      recordAction(t.file, 'Quarantined', 'Admin User');
+    }
+  });
+  save(THREATS_KEY, threats);
+  renderThreats(); renderActions(); populateThreatFilter();
+}
+function bulkDelete(){
+  const ids = getSelectedIds(); if(!ids.length){ alert('No threats selected'); return; }
+  if(!confirm(`Delete ${ids.length} selected?`)) return;
+  ids.forEach(id=>{
+    const t = threats.find(x=>x.id === id);
+    if(t) recordAction(t.file, 'Deleted', 'Admin User');
+  });
+  threats = threats.filter(t => !ids.includes(t.id));
+  save(THREATS_KEY, threats);
+  renderThreats(); renderActions(); populateThreatFilter();
+}
+
+/* Audit record */
+function recordAction(file, action, user){
+  actions = actions || [];
+  actions.push({ id: 'a' + Date.now().toString(36), file, action, user, date: new Date().toISOString().slice(0,19).replace('T',' ')});
+  save(ACTIONS_KEY, actions);
+}
+
+/* export CSV */
+function exportThreatsCSV(){
+  if(!threats.length){ alert('No threats to export'); return; }
+  const rows = [['file','type','scanDate','quarantined','details']];
+  threats.forEach(t => rows.push([t.file,t.type,t.scanDate,t.quarantined ? 'Yes' : 'No', (t.details||'').replace(/\n/g,' ')]));
+  downloadCSV(rows, 'threats_export.csv');
+}
+function exportActionsCSV(){
+  if(!actions.length){ alert('No actions to export'); return; }
+  const rows = [['file','action','user','date']];
+  actions.forEach(a => rows.push([a.file,a.action,a.user,a.date]));
+  downloadCSV(rows, 'threat_actions.csv');
+}
+function downloadCSV(rows, filename='export.csv'){
+  const csv = rows.map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'}); const url=URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
+}
+
+/* Utility: escape */
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]) ); }
+
+/* init: add click delegation for dynamic action buttons already wired in renderThreats via handleRowAction */
+
+/* Save initial if missing */
+if(!load(THREATS_KEY)) save(THREATS_KEY, threats);
+if(!load(ACTIONS_KEY)) save(ACTIONS_KEY, actions);
+
+/* end of script */
+</script>
+</body>
+</html>
