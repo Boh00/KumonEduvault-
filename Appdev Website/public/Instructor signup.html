@@ -141,57 +141,59 @@
     </div>
   </div>
 
-  <script>
-    document.getElementById('signup-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
+<script>
+  document.getElementById('signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-      const fullName = document.getElementById('fullName').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const idNumber = document.getElementById('idNumber').value.trim();
-      const password = document.getElementById('password').value.trim();
-      const confirm = document.getElementById('confirm').value.trim();
-      const startingDate = document.getElementById('startingDate').value;
-      const role = 'instructor';
+    const fullName = document.getElementById('fullName').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const idNumber = document.getElementById('idNumber').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const confirm = document.getElementById('confirm').value.trim();
+    const startingDate = document.getElementById('startingDate').value;
+    const role = 'instructor';
 
-      const messageBox = document.getElementById('message');
-      messageBox.textContent = '';
-      messageBox.style.color = 'red';
+    const messageBox = document.getElementById('message');
+    messageBox.textContent = '';
+    messageBox.style.color = 'red';
 
-      if (password !== confirm) {
-        messageBox.textContent = 'Passwords do not match.';
+    if (password !== confirm) {
+      messageBox.textContent = 'Passwords do not match.';
+      return;
+    }
+
+    try {
+      // ✅ Fixed: unified signup endpoint
+      const response = await fetch("http://localhost:5000/signup", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email, 
+          password, 
+          idNumber, 
+          fullName, 
+          startingDate, 
+          role 
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        messageBox.textContent = data.message || 'Error occurred while signing up.';
         return;
       }
 
-      try {
-        const response = await fetch("http://localhost:5000/signup/instructor", {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            email, 
-            password, 
-            idNumber, 
-            fullName, 
-            startingDate, 
-            role 
-          })
-        });
+      messageBox.style.color = 'green';
+      messageBox.textContent = data.message;
+      alert(`${role} signup successful! Redirecting to login page...`);
+      window.location.href = 'Login instructor.html';
+    } catch (err) {
+      console.error(err);
+      messageBox.textContent = 'Server error. Please try again later.';
+    }
+  });
+</script>
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          messageBox.textContent = data.message || 'Error occurred while signing up.';
-          return;
-        }
-
-        messageBox.style.color = 'green';
-        messageBox.textContent = data.message;
-        alert(`${role} signup successful! Redirecting to login page...`);
-        window.location.href = 'Login instructor.html';
-      } catch (err) {
-        console.error(err);
-        messageBox.textContent = 'Server error. Please try again later.';
-      }
-    });
-  </script>
 </body>
 </html>

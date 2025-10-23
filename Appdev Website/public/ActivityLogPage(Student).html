@@ -141,19 +141,16 @@
 </style>
 </head>
 <body>
-
 <div class="app">
-  <!-- SIDEBAR -->
-  <aside class="sidebar" aria-label="Main navigation">
-    <div class="profile" role="region" aria-label="Profile">
+  <aside class="sidebar">
+    <div class="profile">
       <div class="avatar">U</div>
       <div>
-        <div class="username">Username <span style="font-weight:400">↓</span></div>
+        <div class="username">Username</div>
         <div class="user-sub">user@gmail.com</div>
       </div>
     </div>
-
-    <nav class="nav" aria-label="Sidebar navigation">
+    <nav class="nav">
       <a href="#" class="active"><span class="dot"></span> Activity</a>
       <a href="StudentHomePage.html"><span class="dot"></span> Home</a>
       <a href="StudentFileManagement.html"><span class="dot"></span> Files</a>
@@ -161,29 +158,28 @@
     </nav>
   </aside>
 
-  <!-- MAIN -->
   <main class="main">
-    <div class="topbar" role="banner">
+    <div class="topbar">
       <h1>Activity</h1>
-      <div class="controls" role="search">
-        <div class="search" aria-hidden="false">
+      <div class="controls">
+        <div class="search">
           <svg width="16" height="16" fill="#fff" viewBox="0 0 24 24"><path d="M21 21l-4.35-4.35"></path><circle cx="11" cy="11" r="6" stroke="#fff" stroke-width="1.5" fill="none"></circle></svg>
-          <input id="q" type="search" placeholder="Search activity..." aria-label="Search activity">
+          <input id="q" type="search" placeholder="Search activity...">
         </div>
-        <input id="dateFilter" type="date" aria-label="Filter date">
-        <button id="refreshBtn" title="Refresh">Refresh</button>
+        <input id="dateFilter" type="date">
+        <button id="refreshBtn">Refresh</button>
       </div>
     </div>
 
-    <section class="panel" aria-labelledby="activity-heading">
+    <section class="panel">
       <div class="table-header">
-        <div class="info" id="activity-heading">Recent activity</div>
+        <div class="info">Recent activity</div>
         <div class="actions">
           <div class="small" id="stats">Showing <strong id="count">0</strong> items</div>
         </div>
       </div>
 
-      <table class="activity-table" role="table" aria-label="Activity table">
+      <table class="activity-table">
         <thead>
           <tr>
             <th class="col-small">Date</th>
@@ -193,14 +189,12 @@
             <th>Remarks</th>
           </tr>
         </thead>
-        <tbody id="tbody">
-          <!-- rows injected by JS -->
-        </tbody>
+        <tbody id="tbody"></tbody>
       </table>
 
       <div class="table-foot">
         <div class="small muted">Tip: click column headers to sort (demo uses Date sort)</div>
-        <div class="pagination" aria-label="Pagination">
+        <div class="pagination">
           <button class="page-btn" id="prev">Prev</button>
           <button class="page-btn active" id="pageNum">1</button>
           <button class="page-btn" id="next">Next</button>
@@ -221,37 +215,60 @@ document.addEventListener('DOMContentLoaded', async () => {
   const nextBtn = document.getElementById('next');
   const pageNum = document.getElementById('pageNum');
 
-  // 🧠 Retrieve student info from localStorage
-  const email = localStorage.getItem('email');
-  const name = localStorage.getItem('name');
-  if (!email) {
+  // ✅ Step 1: Verify session with the backend
+  let userData;
+  try {
+    const sessionRes = await fetch('/session-check', {
+      method: 'GET',
+      credentials: 'include'
+    });
+    if (!sessionRes.ok) throw new Error('No active session');
+    const sessionData = await sessionRes.json();
+    if (!sessionData.loggedIn) throw new Error('No active session');
+    userData = sessionData.user;
+  } catch (err) {
     alert('No user session found. Please log in again.');
-    window.location.href = 'StudentLoginPage.html';
+    window.location.href = 'Login.html';
     return;
   }
 
-  // Display user info
-  document.querySelector('.username').textContent = name || 'Student';
-  document.querySelector('.user-sub').textContent = email;
-  document.querySelector('.avatar').textContent = (name?.[0] || 'U').toUpperCase();
+  const email = userData.email;
+  const name = userData.name || 'Student';
 
+  // ✅ Step 2: Update sidebar with user info
+  document.querySelector('.username').textContent = name;
+  document.querySelector('.user-sub').textContent = email;
+  document.querySelector('.avatar').textContent = (name[0] || 'U').toUpperCase();
+
+  // Pagination variables
   let data = [];
   let filtered = [];
   let page = 1;
   const pageSize = 10;
   let sortDesc = true;
 
-  // ✅ Fetch logs from backend
+  // ✅ Step 3: Fetch logs with session cookie
   async function loadLogs() {
     try {
-      const res = await fetch(`/activity/${email}`);
+      const res = await fetch(`/activity/${encodeURIComponent(email)}?role=${encodeURIComponent(userData.role)}`, {
+        method: 'GET',
+        credentials: 'include' // ✅ Important: include session cookie
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || `HTTP ${res.status}`);
+      }
+
       data = await res.json();
       render();
     } catch (err) {
       console.error('Failed to fetch logs:', err);
+      tbody.innerHTML = `<tr><td colspan="5" style="padding:18px;text-align:center;color:red">Failed to load logs. Please log in again.</td></tr>`;
     }
   }
 
+  // Rendering logic
   function render() {
     const q = (qInput.value || '').trim().toLowerCase();
     const dateVal = dateFilter.value ? new Date(dateFilter.value) : null;
@@ -282,7 +299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     tbody.innerHTML = '';
     if (view.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="padding:18px;text-align:center;color:var(--muted)">No activity yet</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" style="padding:18px;text-align:center;color:gray">No activity yet</td></tr>`;
       return;
     }
 
@@ -292,7 +309,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <td class="col-small">${new Date(row.timestamp).toLocaleString()}</td>
         <td><strong>${escapeHtml(row.action)}</strong></td>
         <td>${row.fileName ? `<span class="user-badge">${escapeHtml(row.fileName)}</span>` : '—'}</td>
-        <td>${escapeHtml(row.studentEmail)}</td>
+        <td>${escapeHtml(row.userEmail)}</td>
         <td class="remark">${escapeHtml(row.remarks || '')}</td>
       `;
       tbody.appendChild(tr);
@@ -301,7 +318,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   qInput.addEventListener('input', () => { page = 1; render(); });
   dateFilter.addEventListener('change', () => { page = 1; render(); });
-  refreshBtn.addEventListener('click', () => { qInput.value=''; dateFilter.value=''; page=1; render(); loadLogs(); });
+  refreshBtn.addEventListener('click', () => { qInput.value=''; dateFilter.value=''; page=1; loadLogs(); });
   prevBtn.addEventListener('click', () => { if(page>1){ page--; render(); } });
   nextBtn.addEventListener('click', () => { const max = Math.ceil(filtered.length / pageSize); if(page<max){ page++; render(); } });
 
@@ -310,6 +327,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadLogs();
 });
 </script>
-
 </body>
 </html>
