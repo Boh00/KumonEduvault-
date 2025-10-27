@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KumonEduvault — Admin File Management</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #00cfff;
+      margin: 0;
+      padding: 0;
+    }
+
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: white;
+      padding: 10px 20px;
+      font-weight: bold;
+      border-bottom: 2px solid #ddd;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: black;
+      margin-left: 15px;
+    }
+
+    .logout {
+      background-color: #e74c3c;
+      color: white;
+      padding: 5px 12px;
+      border-radius: 5px;
+      text-decoration: none;
+      margin-left: 10px;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    select {
+      padding: 5px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f5f5f5;
+    }
+
+    tr:hover {
+      background-color: #f0f8ff;
+    }
+
+    button {
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+    }
+
+    .view-btn { background-color: #3498db; }
+    .download-btn { background-color: #2ecc71; }
+    .delete-btn { background-color: #e74c3c; }
+
+    .preview {
+      margin-top: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .preview img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <nav>
+    <div>KumonEduvault — Admin Dashboard</div>
+    <div>
+      <a href="AdminHomePage.html">Home</a>
+      <a href="AdminFileManagement.html">File Management</a>
+      <a href="ActivityLogPage(Admin).html">Activity Logs</a>
+      <a href="#" id="logoutBtn" class="logout">Logout</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2>📁 Uploaded Files</h2>
+
+    <div class="controls">
+      <div>
+        <label>Filter by:</label>
+        <select id="filterRole">
+          <option value="all">All</option>
+          <option value="instructor">Instructors</option>
+          <option value="student">Students</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Sort by:</label>
+        <select id="sortOrder">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+        </select>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>File Name</th>
+          <th>Worksheet Title</th>
+          <th>Uploader</th>
+          <th>Instructor</th>
+          <th>Uploaded At</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="fileTableBody">
+        <tr><td colspan="6" style="text-align:center;">Loading files...</td></tr>
+      </tbody>
+    </table>
+
+    <div class="preview" id="filePreview">
+      <h3>Preview</h3>
+      <p>Select a file to preview</p>
+    </div>
+  </div>
+
+  <script>
+    const fileTableBody = document.getElementById('fileTableBody');
+    const preview = document.getElementById('filePreview');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const filterRole = document.getElementById('filterRole');
+    const sortOrder = document.getElementById('sortOrder');
+
+    let allFiles = [];
+
+    // 🔐 Ensure admin logged in
+    const admin = JSON.parse(localStorage.getItem('loggedInUser'));
+    if (!admin || admin.role !== 'admin') {
+      alert('You must be logged in as an admin to access this page.');
+      window.location.href = 'AdminLogin.html';
+    }
+
+    // 🚪 Logout
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('http://localhost:5000/api/logout', { credentials: 'include' });
+      localStorage.removeItem('loggedInUser');
+      window.location.href = 'AdminLogin.html';
+    });
+
+    // 📂 Load files from server
+    async function loadFiles() {
+      try {
+        const res = await fetch('http://localhost:5000/admin/files', { credentials: 'include' });
+        const files = await res.json();
+        allFiles = Array.isArray(files) ? files : [];
+        renderTable();
+      } catch (err) {
+        console.error('Error loading files:', err);
+        fileTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:red;">Error loading files.</td></tr>`;
+      }
+    }
+
+    // 🧠 Render files with filters/sorting
+    function renderTable() {
+      const roleFilter = filterRole.value;
+      const sort = sortOrder.value;
+
+      let filtered = [...allFiles];
+      if (roleFilter === 'instructor') filtered = filtered.filter(f => f.role === 'instructor');
+      if (roleFilter === 'student') filtered = filtered.filter(f => f.role === 'student');
+
+      filtered.sort((a, b) => sort === 'newest'
+        ? new Date(b.uploadedAt) - new Date(a.uploadedAt)
+        : new Date(a.uploadedAt) - new Date(b.uploadedAt)
+      );
+
+      if (filtered.length === 0) {
+        fileTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No files found.</td></tr>`;
+        return;
+      }
+
+      fileTableBody.innerHTML = '';
+      filtered.forEach(file => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${file.fileName || '—'}</td>
+          <td>${file.worksheetValue || 'Untitled Worksheet'}</td>
+          <td>${file.uploaderEmail || 'Unknown'}</td>
+          <td>${file.instructor || '—'}</td>
+          <td>${new Date(file.uploadedAt).toLocaleString()}</td>
+          <td>
+            <button class="view-btn">View</button>
+            <button class="download-btn">Download</button>
+            <button class="delete-btn">Delete</button>
+          </td>
+        `;
+
+        const viewBtn = tr.querySelector('.view-btn');
+        const downloadBtn = tr.querySelector('.download-btn');
+        const deleteBtn = tr.querySelector('.delete-btn');
+
+        // View file
+        viewBtn.addEventListener('click', () => {
+          if (file.contentType?.startsWith('image/')) {
+            preview.innerHTML = `
+              <h3>${file.worksheetValue || file.fileName}</h3>
+              <p><strong>Uploader:</strong> ${file.uploaderEmail || 'Unknown'}</p>
+              <p><strong>Instructor:</strong> ${file.instructor || '—'}</p>
+              <img src="http://localhost:5000/admin/files/${file._id}" alt="${file.fileName}" />
+            `;
+          } else {
+            preview.innerHTML = `
+              <h3>${file.worksheetValue || file.fileName}</h3>
+              <p><strong>Uploader:</strong> ${file.uploaderEmail || 'Unknown'}</p>
+              <p><strong>Instructor:</strong> ${file.instructor || '—'}</p>
+              <a href="http://localhost:5000/admin/files/${file._id}" target="_blank">Download File</a>
+            `;
+          }
+        });
+
+        // Download file
+        downloadBtn.addEventListener('click', () => {
+          window.open(`http://localhost:5000/admin/files/${file._id}`, '_blank');
+        });
+
+        // Delete file
+        deleteBtn.addEventListener('click', async () => {
+          if (!confirm(`Delete "${file.fileName}"?`)) return;
+          const res = await fetch(`http://localhost:5000/admin/files/${file._id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+          });
+          if (res.ok) {
+            alert('File deleted successfully.');
+            allFiles = allFiles.filter(f => f._id !== file._id);
+            renderTable();
+            preview.innerHTML = '<h3>Preview</h3><p>Select a file to preview</p>';
+          } else {
+            alert('Failed to delete file.');
+          }
+        });
+
+        fileTableBody.appendChild(tr);
+      });
+    }
+
+    // 🧭 Re-render when filter/sort changes
+    filterRole.addEventListener('change', renderTable);
+    sortOrder.addEventListener('change', renderTable);
+
+    loadFiles();
+  </script>
+</body>
+</html>

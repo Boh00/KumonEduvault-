@@ -258,10 +258,8 @@
     <h1>KumonEduvault — Admin</h1>
     <nav>
       <a href="#">Home</a>
-      <a href="#">Logs</a>
-      <a href="#">File Management</a>
-      <a href="#">Settings</a>
-      <a href="#">ThreatDetection</a>
+      <a href="ActivityLogPage(Admin).html">Logs</a>
+      <a href="AdminFileManagement.html">File Management</a>
       <button id="logout-btn" style="margin-left:10px;background:#dc3545;color:white;border:none;padding:6px 12px;border-radius:8px;">Logout</button>
     </nav>
   </header>
@@ -303,7 +301,7 @@
             <th>Name</th><th>Email</th><th>Role</th><th>Created</th><th>Actions</th>
           </tr>
         </thead>
-        <tbody id="users-table-body"></tbody>
+        <tbody id="logTableBody"></tbody>
       </table>
     </div>
 
@@ -359,112 +357,194 @@
 
   <div id="toast"></div>
 
-  <script>
-    const usersTableBody = document.getElementById('users-table-body');
-    const spinner = document.getElementById('spinner');
-    const toast = document.getElementById('toast');
-    const modalBackdrop = document.getElementById('modal-backdrop');
-    const userForm = document.getElementById('user-form');
-    const modalCancel = document.getElementById('modal-cancel');
-    const btnAddUser = document.getElementById('add-user-btn');
-    const userCount = document.getElementById('user-count');
-    const lastBackup = document.getElementById('last-backup');
-    let editUserId = null;
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const tableBody = document.getElementById("logTableBody");
+  const searchInput = document.getElementById("search-filter");
+  const filterSelect = document.getElementById("role-filter");
+  const modalBackdrop = document.getElementById("modal-backdrop");
+  const modalTitle = document.getElementById("modal-title");
+  const userForm = document.getElementById("user-form");
+  const saveBtn = document.getElementById("modal-save");
+  const cancelBtn = document.getElementById("modal-cancel");
 
-    function showToast(msg, type='info') {
-      toast.textContent = msg;
-      toast.style.background = type === 'success' ? '#28a745' : (type === 'error' ? '#dc3545' : '#333');
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
+  let users = [];
+  let editingUserId = null;
+
+  // 🔹 Fetch all users
+  async function loadUsers() {
+    try {
+      const res = await fetch("/admin/users");
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      users = await res.json();
+      renderTable(users);
+    } catch (err) {
+      console.error("Error loading users:", err);
+      tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:red;">Failed to load users.</td></tr>`;
+    }
+  }
+
+  // 🧾 Render user table
+  function renderTable(userList) {
+    tableBody.innerHTML = "";
+    if (!userList.length) {
+      tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No users found.</td></tr>`;
+      return;
     }
 
-    async function loadUsers() {
-      spinner.style.display = 'block';
-      usersTableBody.innerHTML = '';
+    userList.forEach((u) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${u.fullName || u.name || "—"}</td>
+        <td>${u.email || "—"}</td>
+        <td>${u.role || "—"}</td>
+        <td>${u.createdAt ? new Date(u.createdAt).toLocaleString() : "—"}</td>
+        <td>
+          <button class="edit-btn" data-id="${u._id}">Edit</button>
+          <button class="delete-btn" data-id="${u._id}">Delete</button>
+        </td>
+      `;
+      tableBody.appendChild(tr);
+    });
+  }
+
+  // 🟢 Load users on page load
+  loadUsers();
+
+  // 🔍 Search filter
+  searchInput.addEventListener("input", () => {
+    const term = searchInput.value.toLowerCase();
+    const filtered = users.filter(
+      (u) =>
+        (u.fullName && u.fullName.toLowerCase().includes(term)) ||
+        (u.name && u.name.toLowerCase().includes(term)) ||
+        (u.email && u.email.toLowerCase().includes(term)) ||
+        (u.role && u.role.toLowerCase().includes(term))
+    );
+    renderTable(filtered);
+  });
+
+  // 🔽 Role filter
+  filterSelect.addEventListener("change", () => {
+    const role = filterSelect.value;
+    const filtered =
+      !role || role === ""
+        ? users
+        : users.filter((u) => u.role.toLowerCase() === role.toLowerCase());
+    renderTable(filtered);
+  });
+
+  // 🟦 Add user
+  document.getElementById("add-user-btn").addEventListener("click", () => {
+    editingUserId = null;
+    modalTitle.textContent = "Add User";
+    userForm.reset();
+    modalBackdrop.style.display = "flex";
+  });
+
+  // ❌ Cancel modal
+  cancelBtn.addEventListener("click", () => {
+    modalBackdrop.style.display = "none";
+  });
+
+  // ✏️ Edit / 🗑️ Delete buttons
+  document.addEventListener("click", async (e) => {
+    // Delete user
+    if (e.target.classList.contains("delete-btn")) {
+      const id = e.target.dataset.id;
+      if (!confirm("Are you sure you want to delete this user?")) return;
       try {
-        const res = await fetch('http://localhost:5000/admin/users', { credentials: 'include' });
-        if (!res.ok) throw new Error('Failed to fetch users');
-        const users = await res.json();
-        userCount.textContent = users.length;
-        if (!users.length) {
-          usersTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No users found.</td></tr>';
-          return;
-        }
-        users.forEach(u => {
-          const tr = document.createElement('tr');
-          tr.dataset.id = u._id;
-          const created = new Date(u.createdAt || Date.now()).toLocaleString();
-          tr.innerHTML = `
-            <td>${u.name || ''}</td>
-            <td>${u.email || ''}</td>
-            <td>${u.role || ''}</td>
-            <td>${created}</td>
-            <td><button class="edit">Edit</button> <button class="del">Delete</button></td>`;
-          usersTableBody.appendChild(tr);
-        });
-      } catch (err) {
-        showToast(err.message, 'error');
-      } finally {
-        spinner.style.display = 'none';
-      }
-    }
-
-    btnAddUser.onclick = () => {
-      editUserId = null;
-      userForm.reset();
-      document.getElementById('modal-title').textContent = 'Add User';
-      modalBackdrop.style.display = 'flex';
-    };
-
-    modalCancel.onclick = () => modalBackdrop.style.display = 'none';
-
-    userForm.onsubmit = async e => {
-      e.preventDefault();
-      const data = Object.fromEntries(new FormData(userForm).entries());
-      const url = editUserId ? `http://localhost:5000/admin/users/${editUserId}` : 'http://localhost:5000/admin/users';
-      const method = editUserId ? 'PUT' : 'POST';
-      try {
-        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(data) });
-        const msg = await res.json();
-        if (!res.ok) throw new Error(msg.message);
-        showToast(msg.message, 'success');
-        modalBackdrop.style.display = 'none';
-        loadUsers();
-      } catch (err) { showToast(err.message, 'error'); }
-    };
-
-    usersTableBody.onclick = async e => {
-      const btn = e.target;
-      const row = btn.closest('tr');
-      if (btn.classList.contains('edit')) {
-        editUserId = row.dataset.id;
-        document.getElementById('u-name').value = row.children[0].textContent;
-        document.getElementById('u-email').value = row.children[1].textContent;
-        document.getElementById('u-role').value = row.children[2].textContent;
-        document.getElementById('modal-title').textContent = 'Edit User';
-        modalBackdrop.style.display = 'flex';
-      }
-      if (btn.classList.contains('del')) {
-        if (!confirm('Are you sure?')) return;
-        try {
-          const res = await fetch(`http://localhost:5000/admin/users/${row.dataset.id}`, { method: 'DELETE', credentials: 'include' });
-          const msg = await res.json();
-          if (!res.ok) throw new Error(msg.message);
-          showToast(msg.message, 'success');
+        const res = await fetch(`/admin/users/${id}`, { method: "DELETE" });
+        if (res.ok) {
+          alert("User deleted successfully");
           loadUsers();
-        } catch (err) { showToast(err.message, 'error'); }
+        } else {
+          alert("Failed to delete user");
+        }
+      } catch (err) {
+        console.error("Delete error:", err);
+        alert("An error occurred while deleting the user.");
       }
+    }
+
+    // Edit user
+    if (e.target.classList.contains("edit-btn")) {
+      const id = e.target.dataset.id;
+      const user = users.find((u) => u._id === id);
+      if (!user) return;
+
+      editingUserId = id;
+      modalTitle.textContent = "Edit User";
+      modalBackdrop.style.display = "flex";
+
+      document.getElementById("u-name").value = user.fullName || user.name || "";
+      document.getElementById("u-email").value = user.email || "";
+      document.getElementById("u-password").value = "";
+      document.getElementById("u-role").value = user.role.toLowerCase();
+      document.getElementById("u-subjects").value = user.subjects || user.subject || "";
+    }
+  });
+
+  // 💾 Save user (create or update)
+  userForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const body = {
+      name: document.getElementById("u-name").value.trim(),
+      email: document.getElementById("u-email").value.trim(),
+      password: document.getElementById("u-password").value.trim(),
+      role: document.getElementById("u-role").value,
+      subjects: document.getElementById("u-subjects").value.trim(),
     };
 
-    document.getElementById('logout-btn').onclick = async () => {
-      await fetch('http://localhost:5000/logout', { method: 'POST', credentials: 'include' });
-      window.location.href = 'Mainhomepage.html';
-    };
+    try {
+      if (editingUserId) {
+        // Update
+        const res = await fetch(`/admin/users/${editingUserId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          alert("User updated successfully");
+          modalBackdrop.style.display = "none";
+          loadUsers();
+        } else {
+          const data = await res.json();
+          alert(data.message || "Failed to update user");
+        }
+      } else {
+        // Create
+        const res = await fetch(`/admin/users`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          alert("User created successfully");
+          modalBackdrop.style.display = "none";
+          loadUsers();
+        } else {
+          const data = await res.json();
+          alert(data.message || "Failed to create user");
+        }
+      }
+    } catch (err) {
+      console.error("Save error:", err);
+      alert("Error saving user");
+    }
+  });
 
-    // Backup Info
-    lastBackup.textContent = new Date().toLocaleString();
-
-    loadUsers();
-  </script>
+  // 🚪 Logout
+  document.getElementById("logout-btn").addEventListener("click", async () => {
+    try {
+      const res = await fetch("/logout", { method: "POST" });
+      if (res.ok) window.location.href = "/";
+      else alert("Logout failed");
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  });
+});
+</script>
 </body>
 </html>

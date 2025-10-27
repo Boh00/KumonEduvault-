@@ -12,6 +12,7 @@ const Instructor = require('./models/Instructor');
 const Student = require('./models/Student');
 const Notification = require('./models/Notification');
 const File = require('./models/File');
+const ActivityLog = require('./models/ActivityLog');
 
 const app = express();
 
@@ -30,11 +31,11 @@ app.use(session({
 
 // ====== Middleware: Admin Auth Check ======
 function requireAdmin(req, res, next) {
-  if (!req.session?.user || req.session.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Admin access required' });
-  }
-  next();
+  if (req.session?.user?.role === 'admin') return next();
+  console.warn('[requireAdmin] Unauthorized:', req.session?.user);
+  return res.status(403).json({ message: 'Access denied' });
 }
+
 
 // ====== DATABASE ======
 mongoose.connect(
@@ -55,6 +56,22 @@ const getModelByRole = (role) => {
   }
 };
 
+// ===== ACTIVITY LOG HELPER =====
+async function logActivity({ userId, userRole, userEmail, action }) {
+  try {
+    const ActivityLog = require('./models/ActivityLog');
+    await ActivityLog.create({
+      userId,
+      userRole,
+      userEmail,
+      action,
+    });
+    console.log(`[LOGGED]: ${userEmail} - ${action}`);
+  } catch (err) {
+    console.error('Error saving activity log:', err);
+  }
+}
+
 // ====== AUTH ROUTES ======
 app.post('/signup', async (req, res) => {
   try {
@@ -74,18 +91,50 @@ app.post('/signup', async (req, res) => {
 
     if (role === 'admin') {
       if (!idnum || !fullname || !start) return res.status(400).json({ message: 'ID, name, start date required.' });
-      newUser = new Model({ email: emailTrim, password: hashedPassword, idNumber: idnum, fullName: fullname, startingDate: new Date(start), role: 'admin' });
+      newUser = new Model({
+        email: emailTrim,
+        password: hashedPassword,
+        idNumber: idnum,
+        fullName: fullname,
+        startingDate: new Date(start),
+        role: 'admin'
+      });
     } else if (role === 'instructor') {
       if (!idnum || !fullname || !start || !subject) return res.status(400).json({ message: 'Missing instructor data.' });
       if (!['Math', 'Reading'].includes(subject)) return res.status(400).json({ message: 'Subject must be Math or Reading.' });
-      newUser = new Model({ email: emailTrim, password: hashedPassword, idNumber: idnum, fullName: fullname, startingDate: new Date(start), role: 'instructor', subject });
+      newUser = new Model({
+        email: emailTrim,
+        password: hashedPassword,
+        idNumber: idnum,
+        fullName: fullname,
+        startingDate: new Date(start),
+        role: 'instructor',
+        subject
+      });
     } else if (role === 'student') {
       if (!fullname || !subjects) return res.status(400).json({ message: 'Full name and subjects required.' });
       if (!['Math', 'Reading', 'Both'].includes(subjects)) return res.status(400).json({ message: 'Invalid subjects.' });
-      newUser = new Model({ email: emailTrim, password: hashedPassword, name: fullname, role: 'student', subjects });
+      newUser = new Model({
+        email: emailTrim,
+        password: hashedPassword,
+        name: fullname,
+        role: 'student',
+        subjects
+      });
     }
 
+    // ✅ Save user
     await newUser.save();
+
+    // 🧩 Add this block BELOW save() but BEFORE response
+    await logActivity({
+      userId: newUser._id,
+      userRole: role,
+      userEmail: emailTrim,
+      action: `${role} signed up`,
+    });
+
+    // ✅ Send response AFTER logging
     res.status(201).json({ message: `${role} signup successful!` });
   } catch (err) {
     console.error('[SIGNUP ERROR]', err);
@@ -93,21 +142,37 @@ app.post('/signup', async (req, res) => {
   }
 });
 
+
 app.post('/login', async (req, res) => {
   try {
     const { email = '', password = '', role = '' } = req.body;
     const emailTrim = email.trim().toLowerCase();
-    if (!emailTrim || !password) return res.status(400).json({ message: 'Email and password are required.' });
+    if (!emailTrim || !password)
+      return res.status(400).json({ message: 'Email and password are required.' });
 
     const Model = getModelByRole(role);
     if (!Model) return res.status(400).json({ message: 'Invalid role.' });
 
     const user = await Model.findOne({ email: emailTrim });
     if (!user) return res.status(401).json({ message: 'Email not found.' });
-    if (!await bcrypt.compare(password, user.password)) return res.status(401).json({ message: 'Incorrect password.' });
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) return res.status(401).json({ message: 'Incorrect password.' });
 
     const name = user.name || user.fullName || emailTrim.split('@')[0];
+
+    // ✅ Save session
     req.session.user = { email: emailTrim, name, role, id: user._id };
+
+    // ✅ Log the login activity
+    await logActivity({
+      userId: user._id,
+      userRole: role,
+      userEmail: emailTrim,
+      action: `${role} logged in`,
+    });
+
+    // ✅ Prepare and send response
     const responseData = {
       message: `${role} login successful!`,
       email: emailTrim,
@@ -133,8 +198,18 @@ app.get('/session-check', (req, res) => {
     : res.status(401).json({ loggedIn: false, message: 'No session' });
 });
 
-app.post('/logout', (req, res) => {
-  req.session ? req.session.destroy(() => res.json({ message: 'Logged out.' })) : res.status(400).json({ message: 'No active session.' });
+app.get('/api/logout', async (req, res) => {
+  if (req.session?.user) {
+    await logActivity({
+      userId: req.session.user.id,
+      userRole: req.session.user.role,
+      userEmail: req.session.user.email,
+      action: `${req.session.user.role} logged out`,
+    });
+    req.session.destroy(() => res.json({ message: 'Logged out.' }));
+  } else {
+    res.status(400).json({ message: 'No active session.' });
+  }
 });
 
 // ====== INSTRUCTOR PROFILE (Protected) ======
@@ -251,7 +326,6 @@ app.get('/instructors', async (req, res) => {
 const memoryStorage = multer.memoryStorage();
 const upload = multer({ storage: memoryStorage });
 
-// 🧠 Student uploads file (saved in MongoDB with instructor reference)
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {
     const { fileName, worksheetValue, instructor, email } = req.body;
@@ -264,6 +338,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid instructor ID.' });
     }
 
+    // ✅ Save file to MongoDB
     const newFile = new File({
       fileName,
       worksheetValue,
@@ -271,16 +346,36 @@ app.post('/upload', upload.single('file'), async (req, res) => {
       data: req.file.buffer,
       instructor: instructorDoc._id,
       uploaderEmail: email,
-      uploadedAt: new Date()
+      uploadedAt: new Date(),
     });
 
     await newFile.save();
+
+    // ✅ Log the upload action
+    if (req.session?.user) {
+      await logActivity({
+        userId: req.session.user.id,
+        userRole: req.session.user.role,
+        userEmail: req.session.user.email,
+        action: `${req.session.user.role} uploaded a file: ${fileName}`,
+      });
+    } else {
+      // fallback if no session exists (e.g. system uploads)
+      await logActivity({
+        userId: null,
+        userRole: 'system',
+        userEmail: email || 'unknown',
+        action: `File uploaded (no session): ${fileName}`,
+      });
+    }
+
     res.json({ success: true, message: '✅ File uploaded successfully to MongoDB!' });
   } catch (err) {
     console.error('[UPLOAD ERROR]', err);
     res.status(500).json({ success: false, message: 'Server error while uploading.' });
   }
 });
+
 
 // ====== FETCH ALL FILES ======
 app.get('/files', async (req, res) => {
@@ -353,8 +448,6 @@ app.get('/api/instructor/:id/submissions', async (req, res) => {
   }
 });
 
-
-// ✏️ Update a submission (rename or add remarks)
 app.put('/api/instructor/submissions/:fileId', async (req, res) => {
   try {
     const { fileId } = req.params;
@@ -367,6 +460,24 @@ app.put('/api/instructor/submissions/:fileId', async (req, res) => {
     );
 
     if (!updated) return res.status(404).json({ message: 'File not found' });
+
+    // ✅ Log the edit action
+    if (req.session?.user) {
+      await logActivity({
+        userId: req.session.user.id,
+        userRole: req.session.user.role,
+        userEmail: req.session.user.email,
+        action: `${req.session.user.role} edited file: ${updated.fileName || 'Unnamed File'}`,
+      });
+    } else {
+      // Fallback if session is missing
+      await logActivity({
+        userId: null,
+        userRole: 'system',
+        userEmail: 'unknown',
+        action: `File edited (no session): ${fileName || 'Unnamed File'}`,
+      });
+    }
 
     res.json({ message: '✅ File updated successfully', file: updated });
   } catch (err) {
@@ -383,12 +494,31 @@ app.delete('/api/instructor/submissions/:fileId', async (req, res) => {
 
     if (!deleted) return res.status(404).json({ message: 'File not found' });
 
+    // ✅ Log the delete action
+    if (req.session?.user) {
+      await logActivity({
+        userId: req.session.user.id,
+        userRole: req.session.user.role,
+        userEmail: req.session.user.email,
+        action: `${req.session.user.role} deleted file: ${deleted.fileName || 'Unnamed File'}`,
+      });
+    } else {
+      // Fallback in case session is missing
+      await logActivity({
+        userId: null,
+        userRole: 'system',
+        userEmail: 'unknown',
+        action: `File deleted (no session): ${deleted.fileName || 'Unnamed File'}`,
+      });
+    }
+
     res.json({ message: '🗑️ File deleted successfully' });
   } catch (err) {
     console.error('[DELETE SUBMISSION ERROR]', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 // ====== GET CURRENT INSTRUCTOR INFO (used by InstructorFileManagement.html) ======
 app.get('/api/instructor/me', async (req, res) => {
@@ -452,12 +582,21 @@ app.put('/api/instructor/submissions/:fileId', async (req, res) => {
 
     if (!updated) return res.status(404).json({ message: 'File not found' });
 
-    res.json({ message: 'File updated successfully', file: updated });
+    // ✅ Log instructor activity
+    await logActivity({
+      userId: req.session.user.id,
+      userRole: req.session.user.role,
+      userEmail: req.session.user.email,
+      action: `Instructor updated file: ${updated.fileName || 'Unnamed'} (${updated._id})`,
+    });
+
+    res.json({ message: '✅ File updated successfully', file: updated });
   } catch (err) {
     console.error('[INSTRUCTOR FILE UPDATE ERROR]', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
 
 // Delete a file
 app.delete('/api/instructor/submissions/:fileId', async (req, res) => {
@@ -467,13 +606,20 @@ app.delete('/api/instructor/submissions/:fileId', async (req, res) => {
 
     if (!deleted) return res.status(404).json({ message: 'File not found' });
 
-    res.json({ message: 'File deleted successfully' });
+    // ✅ Log instructor activity
+    await logActivity({
+      userId: req.session.user.id,
+      userRole: req.session.user.role,
+      userEmail: req.session.user.email,
+      action: `Instructor deleted file: ${deleted.fileName || 'Unnamed'} (${deleted._id})`,
+    });
+
+    res.json({ message: '🗑️ File deleted successfully' });
   } catch (err) {
     console.error('[DELETE FILE ERROR]', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
-
 
 // Instructors upload files to students
 app.post('/instructor/upload', upload.single('file'), async (req, res) => {
@@ -581,27 +727,32 @@ async function findUserModelById(id) {
 }
 
 // GET all users (combined)
-app.get('/admin/users', requireAdmin, async (req, res) => {
+app.get(['/admin/users', '/api/admin/users'], async (req, res) => {
+  console.log('---- /admin/users CALLED ----');
+  console.log('Session:', req.session?.user);
+
+  // quick guard
+  if (!req.session?.user || req.session.user.role?.toLowerCase() !== 'admin') {
+    console.log('Access denied - no admin session');
+    return res.status(403).json({ message: 'Access denied (not admin)' });
+  }
+
   try {
     const students = await Student.find().select('-password').lean();
     const instructors = await Instructor.find().select('-password').lean();
     const admins = await Admin.find().select('-password').lean();
 
-    // normalize records to a common shape for the frontend
-    const mapStudent = s => ({ _id: s._id, name: s.name, email: s.email, role: 'Student', subjects: s.subjects, createdAt: s.createdAt });
-    const mapInstructor = i => ({ _id: i._id, name: i.fullName, email: i.email, role: 'Instructor', subject: i.subject, idNumber: i.idNumber, startingDate: i.startingDate, createdAt: i.createdAt });
-    const mapAdmin = a => ({ _id: a._id, name: a.fullName, email: a.email, role: 'Admin', idNumber: a.idNumber, startingDate: a.startingDate, createdAt: a.createdAt });
+    const mapStudent = s => ({ _id: s._id, name: s.name, email: s.email, role: 'Student' });
+    const mapInstructor = i => ({ _id: i._id, name: i.fullName, email: i.email, role: 'Instructor' });
+    const mapAdmin = a => ({ _id: a._id, name: a.fullName, email: a.email, role: 'Admin' });
 
-    const payload = [
-      ...students.map(mapStudent),
-      ...instructors.map(mapInstructor),
-      ...admins.map(mapAdmin)
-    ];
+    const payload = [...students.map(mapStudent), ...instructors.map(mapInstructor), ...admins.map(mapAdmin)];
 
+    console.log(`Returning ${payload.length} users`);
     res.json(payload);
   } catch (err) {
-    console.error('[GET /admin/users]', err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('[GET /admin/users] error:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
@@ -652,26 +803,45 @@ app.put('/admin/users/:id', requireAdmin, async (req, res) => {
     const id = req.params.id;
     const found = await findUserModelById(id);
     if (!found) return res.status(404).json({ message: 'User not found' });
-
     if (found.role === 'Admin') {
       return res.status(403).json({ message: 'Editing other Admins is not allowed' });
     }
 
     const body = req.body;
+
     if (found.role === 'Student') {
-      const data = {};
-      if (body.name) data.name = body.name;
-      if (body.email) data.email = body.email;
-      if (body.subjects) data.subjects = body.subjects;
-      await Student.findByIdAndUpdate(id, data, { new: true });
+      await Student.findByIdAndUpdate(id, {
+        name: body.name,
+        email: body.email,
+        subjects: body.subjects,
+      });
+
+      // ✅ Log activity
+      await logActivity({
+        userId: req.session.user.id,
+        userRole: req.session.user.role,
+        userEmail: req.session.user.email,
+        action: `Admin updated Student: ${body.name || found.name} (${body.email || found.email})`,
+      });
+
       return res.json({ message: 'Student updated' });
-    } else if (found.role === 'Instructor') {
-      const data = {};
-      if (body.name) data.fullName = body.name;
-      if (body.email) data.email = body.email;
-      if (body.subject) data.subject = body.subject;
-      if (body.idNumber) data.idNumber = body.idNumber;
-      await Instructor.findByIdAndUpdate(id, data, { new: true });
+    }
+
+    else if (found.role === 'Instructor') {
+      await Instructor.findByIdAndUpdate(id, {
+        fullName: body.name,
+        email: body.email,
+        subject: body.subject,
+        idNumber: body.idNumber,
+      });
+
+      await logActivity({
+        userId: req.session.user.id,
+        userRole: req.session.user.role,
+        userEmail: req.session.user.email,
+        action: `Admin updated Instructor: ${body.name || found.name} (${body.email || found.email})`,
+      });
+
       return res.json({ message: 'Instructor updated' });
     }
 
@@ -694,11 +864,80 @@ app.delete('/admin/users/:id', requireAdmin, async (req, res) => {
     }
 
     await found.model.findByIdAndDelete(id);
+
+    // ✅ Log deletion
+    await logActivity({
+      userId: req.session.user.id,
+      userRole: req.session.user.role,
+      userEmail: req.session.user.email,
+      action: `Admin deleted ${found.role}: ${found.name} (${found.email})`,
+    });
+
     return res.json({ message: `${found.role} deleted` });
   } catch (err) {
     console.error('[DELETE /admin/users/:id]', err);
     res.status(500).json({ message: 'Server error' });
   }
+});
+
+
+// ====== ADMIN FILE MANAGEMENT API ======
+
+app.get('/admin/files', requireAdmin, async (req, res) => {
+  try {
+    const files = await File.find()
+      .populate('instructor', 'fullName email')
+      .sort({ uploadedAt: -1 })
+      .lean();
+
+    const payload = files.map(f => ({
+      _id: f._id,
+      fileName: f.fileName,
+      worksheetValue: f.worksheetValue || 'Untitled Worksheet',
+      uploaderEmail: f.uploaderEmail || 'Unknown',
+      instructor: f.instructor ? f.instructor.fullName : '—',
+      contentType: f.contentType,
+      uploadedAt: f.uploadedAt
+    }));
+
+    res.json(payload);
+  } catch (err) {
+    console.error('[GET /admin/files]', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// DELETE a file
+app.delete('/admin/files/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const file = await File.findById(id);
+    if (!file) return res.status(404).json({ message: 'File not found' });
+
+    await File.findByIdAndDelete(id);
+
+    // ✅ Log admin action
+    await logActivity({
+      userId: req.session.user.id,
+      userRole: req.session.user.role,
+      userEmail: req.session.user.email,
+      action: `Admin deleted file: ${file.fileName || 'Unnamed'} (${file._id})`,
+    });
+
+    res.json({ message: '🗑️ File deleted successfully' });
+  } catch (err) {
+    console.error('[DELETE /admin/files/:id]', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+//Admin preview files
+app.get('/admin/files/:id', requireAdmin, async (req, res) => {
+  const file = await File.findById(req.params.id);
+  if (!file) return res.status(404).json({ message: 'File not found' });
+  res.set('Content-Type', file.contentType);
+  res.send(file.data);
 });
 
 // ✅ Serve static files *after* all API routes
@@ -709,6 +948,57 @@ app.get(/.*/, (req, res, next) => {
   res.sendFile(path.join(__dirname, 'public', 'Mainhomepage.html'));
 });
 
+// ====== ACTIVITY LOG API ======
+
+// Log a new activity (for any role)
+app.post('/api/logs', async (req, res) => {
+  try {
+    const { userId, userRole, userEmail, action } = req.body;
+    if (!userId || !userRole || !action) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const log = new ActivityLog({ userId, userRole, userEmail, action });
+    await log.save();
+
+    res.json({ message: 'Activity logged', log });
+  } catch (err) {
+    console.error('[POST /api/logs]', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get logs for the current logged-in user (Student/Instructor)
+app.get('/api/logs/me', async (req, res) => {
+  try {
+    const user = req.session.user;
+    if (!user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const logs = await ActivityLog.find({ userId: user._id })
+      .sort({ timestamp: -1 })
+      .lean();
+
+    res.json(logs);
+  } catch (err) {
+    console.error('[GET /api/logs/me]', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Admin: Get all activity logs
+app.get('/admin/logs', requireAdmin, async (req, res) => {
+  try {
+    const logs = await ActivityLog.find()
+      .populate('userId', 'fullName email')
+      .sort({ timestamp: -1 })
+      .lean();
+
+    res.json(logs);
+  } catch (err) {
+    console.error('[GET /admin/logs]', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // ====== ROOT PAGE ======
 app.get('/', (_, res) => res.sendFile(path.join(__dirname, 'public', 'Mainhomepage.html')));
