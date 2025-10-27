@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Instructor Home — KumonEduvault</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* (Same styles as before — omitted here for brevity; use your current stylesheet block) */
+:root{ --bg:#10ceeb; --accent:#0f1724; --muted:#6b7280; --card:#ffffff; --border:#e6eef3; --shadow:0 10px 30px rgba(0,0,0,0.06); --radius:10px; --primary:#0b74d1; --max-width:1200px; font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial;}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--accent);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.header{background:#10ceeb;padding:14px 26px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50}
+.brand{font-weight:700}
+nav ul{list-style:none;margin:0;padding:0;display:flex;gap:14px;align-items:center}
+nav a{font-size:14px;color:var(--muted);padding:6px 10px;border-radius:8px}
+nav a.active{background:#f3f7fb;color:var(--accent)}
+.page{max-width:var(--max-width);margin:28px auto;padding: 0 20px;display:grid;grid-template-columns: 330px 1fr 420px;gap:24px;align-items:start}
+@media (max-width:1100px){ .page{grid-template-columns: 1fr 420px} .left-col{order:2} .center{order:1} }
+@media (max-width:780px){ .page{grid-template-columns: 1fr; gap:18px} }
+.left-col{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border-radius:10px;padding:14px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.section-title{font-weight:700;margin:0 0 8px;font-size:15px}
+.class-card{display:flex;gap:12px;align-items:center;padding:12px;border-radius:8px;border:1px solid #f0f5f8;background:#fff;cursor:default}
+.class-thumb{width:64px;height:64px;background:linear-gradient(180deg,#f2f4f6,#e9eef2);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:700}
+.class-info h4{margin:0;font-size:16px}
+.class-info p{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.class-meta{margin-left:auto;font-size:13px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.stat{background:linear-gradient(180deg,#fff,#fbfdff);border-radius:8px;padding:12px;border:1px solid #eff7fb}
+.stat h3{margin:0;font-size:18px}
+.stat p{margin:8px 0 0;color:var(--muted)}
+.notifications-board{background:var(--card);border-radius:8px;padding:14px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.notification-card{border-bottom:1px solid #f0f5f8;padding:10px}
+.notification-content{font-size:14px;color:var(--muted)}
+.message-form{display:flex;flex-direction:column;gap:12px}
+.form-row{display:flex;flex-direction:column;gap:6px}
+input[type="text"], input[type="date"], select, textarea{padding:10px 12px;border-radius:8px;border:1px solid #eef6f9;background:#fff;font-size:14px;outline:none}
+textarea{min-height:90px;resize:vertical}
+.create-btn{background:var(--primary);color:#fff;padding:10px;border-radius:8px;border:none;font-weight:700;cursor:pointer}
+.muted-note{font-size:13px;color:var(--muted)}
+.student-list{display:flex;flex-direction:column;gap:8px}
+.student-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:8px;border:1px solid #f3f7fb;background:#fff}
+.student-item .initial{width:44px;height:44px;border-radius:8px;background:linear-gradient(180deg,#f3f7fb,#eef6fb);display:flex;align-items:center;justify-content:center;font-weight:700}
+.student-item .meta{flex:1}
+.student-item .meta strong{display:block}
+.student-item .meta small{color:var(--muted);display:block;margin-top:6px}
+.file-card{background:var(--card);border-radius:8px;padding:12px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.file-preview{width:100%;height:140px;background:linear-gradient(180deg,#e9e9e9,#dedede);border-radius:8px;border:2px dashed #e8eef3;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;overflow:hidden;text-align:center}
+@media (max-width:980px){ .page{grid-template-columns:1fr 420px} .center{display:none} }
+@media (max-width:780px){ .page{grid-template-columns:1fr} .center{display:block} }
+</style>
+</head>
+<body>
+<header class="header" role="banner">
+  <div class="brand">KumonEduvault</div>
+  <nav aria-label="Main nav">
+    <ul>
+      <li><a href="#" class="active">Home</a></li>
+      <li><a href="InstructorFileManagement.html">File Management</a></li>
+      <li><a href="ActivityLogPage(Instructor).html">Logs</a></li>
+      <li><a href="Mainhomepage.html" id="logout-link" style="margin-left:12px;color:var(--muted);font-size:14px">Logout</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main class="page" role="main">
+  <!-- LEFT -->
+  <aside class="left-col" aria-label="Classes & notifications">
+    <section class="card">
+      <h3 class="section-title">My Class</h3>
+      <div id="classes-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    </section>
+
+    <section class="card">
+      <h3 class="section-title">Notifications</h3>
+      <div class="notifications-board" id="notifications-board"></div>
+    </section>
+  </aside>
+
+  <!-- CENTER -->
+  <section class="center" aria-label="Overview">
+    <div class="welcome">
+      <h1 id="welcome-title">Welcome, Instructor!</h1>
+      <p id="welcome-sub">Here's your day's snapshot — manage your class, view notifications, and message students.</p>
+    </div>
+
+    <div class="stats" style="margin-top:14px">
+      <div class="stat">
+        <h3 id="total-students">0</h3>
+        <p>Total Students</p>
+      </div>
+      <div class="stat">
+        <h3 id="total-notifs">0</h3>
+        <p>Notifications</p>
+      </div>
+    </div>
+
+    <div style="margin-top:18px" class="card">
+      <h3 class="section-title">Roster</h3>
+      <div id="roster" class="student-list" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <!-- RIGHT -->
+  <aside class="panel card" aria-label="Send Notifications & Quick Actions">
+    <h3 class="section-title">Send Notification</h3>
+    <form id="send-notification-form" class="message-form">
+      <div class="form-row">
+        <label for="message-recipient">Recipient</label>
+        <select id="message-recipient">
+          <option value="students">Students</option>
+          <option value="instructors">Instructors</option>
+          <option value="admins">Admins</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="message-content">Message</label>
+        <textarea id="message-content" placeholder="Write your message here"></textarea>
+      </div>
+      <div class="form-row">
+        <label for="notify-subject">Subject (used when sending to students)</label>
+        <input id="notify-subject" type="text" placeholder="Math or Reading (optional)" />
+      </div>
+      <button type="submit" class="create-btn">Send Notification</button>
+    </form>
+
+    <hr style="margin:14px 0;border:none;border-top:1px solid #eef6f9">
+
+    <h3 class="section-title">Upload Worksheet</h3>
+    <div class="file-card">
+      <form id="upload-form" enctype="multipart/form-data">
+        <div class="file-preview" id="file-preview"><span>Preview Image / filename</span></div>
+        <div style="margin-top:10px">
+          <label>Choose file</label>
+          <input type="file" id="file" name="file" accept=".pdf,.png,.jpg,.jpeg" required />
+        </div>
+        <div style="margin-top:8px">
+          <label>File name</label>
+          <input id="file-name" name="fileName" type="text" placeholder="Worksheet name" required />
+        </div>
+        <div style="margin-top:8px">
+          <label>Worksheet Value</label>
+          <input id="worksheet-val" name="worksheetValue" type="text" placeholder="Value" required />
+        </div>
+        <input type="hidden" id="instructor-id" name="instructor" />
+        <input type="hidden" id="uploader-email" name="email" />
+        <button type="submit" style="margin-top:10px" class="create-btn">Upload</button>
+      </form>
+    </div>
+  </aside>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  // Primary: attempt to fetch profile using session-backed endpoint
+  let instructor = null;
+  try {
+    const res = await fetch('/api/instructor/profile', { credentials: 'include' });
+    if (res.ok) {
+      instructor = await res.json();
+      // Keep a localStorage snapshot (for UX fallback)
+      localStorage.setItem('loggedInUser', JSON.stringify({ email: instructor.email, name: instructor.fullName, role: 'instructor', _id: instructor._id }));
+    }
+  } catch (err) {
+    console.warn('Profile fetch error (session):', err);
+  }
+
+  // If session-based profile failed, try localStorage fallback
+  if (!instructor) {
+    const stored = localStorage.getItem('loggedInUser');
+    if (!stored) {
+      return location.href = 'InstructorLogin.html';
+    }
+    const user = JSON.parse(stored);
+    if (!user.email || user.role !== 'instructor') {
+      localStorage.removeItem('loggedInUser');
+      return location.href = 'InstructorLogin.html';
+    }
+    // Attempt to fetch by email (older behavior) as a last resort
+    try {
+      const r = await fetch(`/instructor/${encodeURIComponent(user.email)}`);
+      if (r.ok) instructor = await r.json();
+    } catch (err) {
+      console.error('Fallback email fetch failed:', err);
+    }
+    if (!instructor) {
+      alert('Could not load instructor profile. Please re-login.');
+      localStorage.removeItem('loggedInUser');
+      return location.href = 'InstructorLogin.html';
+    }
+  }
+
+  // Now we have instructor object
+  const instructorId = instructor._id;
+  const subject = instructor.subject;
+  document.getElementById('welcome-title').textContent = `Welcome, ${instructor.fullName || instructor.name || 'Instructor'}!`;
+  document.getElementById('welcome-sub').textContent = `Subject: ${subject} — Starting: ${ new Date(instructor.startingDate).toLocaleDateString() }`;
+  document.getElementById('instructor-id').value = instructorId;
+  document.getElementById('uploader-email').value = instructor.email;
+
+  // Populate roster by fetching students by subject
+  let students = [];
+  try {
+    const r = await fetch(`/students/${encodeURIComponent(subject)}`);
+    if (r.ok) students = await r.json();
+  } catch (err) {
+    console.error('Error fetching students:', err);
+  }
+
+  document.getElementById('total-students').textContent = students.length;
+  const roster = document.getElementById('roster');
+  roster.innerHTML = '';
+  if (students.length === 0) {
+    roster.innerHTML = '<div class="muted-note">No students yet for this subject.</div>';
+  } else {
+    students.forEach(s => {
+      const item = document.createElement('div');
+      item.className = 'student-item';
+      item.innerHTML = `
+        <div class="initial">${(s.name || s.email || 'S').charAt(0).toUpperCase()}</div>
+        <div class="meta">
+          <strong>${s.name || s.email}</strong>
+          <small>Subjects: ${s.subjects} • Reading ${s.progress?.reading ?? 0}% • Math ${s.progress?.math ?? 0}%</small>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:13px;color:var(--muted)">${s.email}</div>
+        </div>
+      `;
+      roster.appendChild(item);
+    });
+  }
+
+  // Populate My Class card
+  const classesList = document.getElementById('classes-list');
+  classesList.innerHTML = '';
+  const classCard = document.createElement('div');
+  classCard.className = 'class-card';
+  classCard.innerHTML = `
+    <div class="class-thumb">${subject.charAt(0)}</div>
+    <div class="class-info">
+      <h4>${subject} — ${subject} Class</h4>
+      <p>${students.length} students</p>
+    </div>
+    <div class="class-meta">${subject}</div>
+  `;
+  classesList.appendChild(classCard);
+
+  // Fetch instructor notifications (session-based)
+  let notifications = [];
+  try {
+    const r = await fetch(`/notifications/${encodeURIComponent(instructorId)}/instructor`);
+    if (r.ok) notifications = await r.json();
+  } catch (err) {
+    console.error('Error fetching notifications:', err);
+  }
+
+  document.getElementById('total-notifs').textContent = notifications.length;
+  const notBoard = document.getElementById('notifications-board');
+  notBoard.innerHTML = '';
+  if (notifications.length === 0) {
+    notBoard.innerHTML = `<div class="notification-card"><div class="notification-content muted-note">No notifications</div></div>`;
+  } else {
+    notifications.forEach(n => {
+      const card = document.createElement('div');
+      card.className = 'notification-card';
+      const time = new Date(n.createdAt).toLocaleString();
+      card.innerHTML = `
+        <div style="font-weight:700">${n.message}</div>
+        <div class="notification-content" style="margin-top:6px"><small>${time}</small></div>
+      `;
+      notBoard.appendChild(card);
+    });
+  }
+
+  // Logout link: clear localStorage and call backend logout
+  document.getElementById('logout-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    fetch('/logout', { method: 'POST', credentials: 'include' }).finally(() => {
+      localStorage.removeItem('loggedInUser');
+      location.href = 'Mainhomepage.html';
+    });
+  });
+
+  // Send notification form
+  document.getElementById('send-notification-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const recipientType = document.getElementById('message-recipient').value;
+    const message = document.getElementById('message-content').value.trim();
+    const notifySubject = (document.getElementById('notify-subject').value || '').trim();
+
+    if (!message) {
+      alert('Please enter a message.');
+      return;
+    }
+
+    const payload = {
+      senderId: instructorId,
+      senderModel: 'Instructor',
+      recipientType,
+      message
+    };
+
+    if (recipientType === 'students') payload.subject = subject;
+
+    try {
+      const r = await fetch('/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const res = await r.json();
+      if (!r.ok) {
+        alert(res.message || 'Failed to send notification');
+      } else {
+        alert(res.message || 'Notifications created');
+        // refresh notifications UI
+        const nr = await fetch(`/notifications/${encodeURIComponent(instructorId)}/instructor`);
+        if (nr.ok) {
+          const newNot = await nr.json();
+          document.getElementById('total-notifs').textContent = newNot.length;
+          notBoard.innerHTML = '';
+          newNot.forEach(n => {
+            const card = document.createElement('div');
+            card.className = 'notification-card';
+            const time = new Date(n.createdAt).toLocaleString();
+            card.innerHTML = `<div style="font-weight:700">${n.message}</div><div class="notification-content" style="margin-top:6px"><small>${time}</small></div>`;
+            notBoard.appendChild(card);
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Send notification error:', err);
+      alert('Error sending notification');
+    }
+  });
+
+  // File preview/upload
+  const fileInput = document.getElementById('file');
+  const preview = document.getElementById('file-preview');
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+      preview.innerHTML = '<span>Preview Image / filename</span>';
+      return;
+    }
+    preview.innerHTML = '';
+    if (file.type.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '100%';
+      preview.appendChild(img);
+    } else {
+      preview.textContent = file.name;
+    }
+  });
+
+  document.getElementById('upload-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const fd = new FormData(form);
+    fd.set('instructor', instructorId);
+    fd.set('email', instructor.email);
+
+    try {
+      const r = await fetch('/upload', { method: 'POST', body: fd });
+      const res = await r.json();
+      if (!r.ok) {
+        alert(res.message || 'Upload failed');
+      } else {
+        alert(res.message || 'File uploaded');
+        form.reset();
+        preview.innerHTML = '<span>Preview Image / filename</span>';
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Upload failed');
+    }
+  });
+
+}); // DOMContentLoaded
+</script>
+</body>
+</html>

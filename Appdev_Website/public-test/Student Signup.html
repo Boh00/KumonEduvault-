@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Student Sign Up — KumonEduvault</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#10ceeb;
+      --card:#ffffff;
+      --muted:#8b8b91;
+      --border:#e6e6e9;
+      --accent:#222222;
+      --radius:8px;
+      --gap:12px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    html,body{
+      height:100%;
+      margin:0;
+    }
+
+    body{
+      background:var(--bg);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:32px 16px;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .top-bar{
+      position:fixed;
+      top:0; left:0; right:0;
+      height:6px; background:var(--accent);
+    }
+
+    .signup-wrapper{
+      width:360px;
+      max-width:94%;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+      padding:26px 22px;
+      box-shadow:0 6px 20px rgba(20,20,30,0.06);
+    }
+
+    h2{
+      margin:0 0 16px 0;
+      font-size:18px;
+      font-weight:600;
+      text-align:center;
+      color:#111;
+    }
+
+    .subtitle{
+      text-align:center;
+      color:var(--muted);
+      font-size:13px;
+      margin-bottom:6px;
+    }
+
+    form{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    label{
+      display:block;
+      font-size:13px;
+      color:#222;
+      margin-bottom:6px;
+    }
+
+    input, select{
+      width:100%;
+      padding:13px 7px;
+      border-radius:var(--radius);
+      border:1px solid var(--border);
+      background:#fbfbfc;
+      font-size:13px;
+      outline:none;
+      transition:box-shadow .15s, border-color .12s;
+    }
+
+    input::placeholder{
+      color:var(--muted);
+    }
+
+    input:focus, select:focus{
+      border-color:#cfcfd6;
+      box-shadow:0 4px 12px rgba(34,34,34,0.06);
+    }
+
+    .btn{
+      display:inline-block;
+      width:100%;
+      padding:12px 16px;
+      border-radius:var(--radius);
+      border:0;
+      background:var(--accent);
+      color:white;
+      font-weight:600;
+      cursor:pointer;
+      font-size:15px;
+      box-shadow:0 2px 6px rgba(34,34,34,0.12);
+      transition:transform .08s ease, box-shadow .08s ease;
+    }
+
+    .btn:active{ transform:translateY(1px); }
+    .btn:hover{ box-shadow:0 6px 14px rgba(34,34,34,0.12); }
+
+    .btn-back{
+      display:inline-block;
+      width:100%;
+      padding:12px 16px;
+      border-radius:var(--radius);
+      border:1px solid var(--accent);
+      background:white;
+      color:var(--accent);
+      font-weight:600;
+      cursor:pointer;
+      font-size:15px;
+      margin-top:8px;
+      text-align:center;
+      text-decoration:none;
+    }
+
+    .meta{
+      margin-top:8px;
+      font-size:14px;
+      display:flex;
+      justify-content:flex-start;
+      align-items:center;
+      gap:12px;
+    }
+
+    .meta a{
+      color:var(--accent);
+      text-decoration:underline;
+      font-size:13px;
+    }
+
+    #message{
+      text-align:center;
+      margin-top:6px;
+      font-size:14px;
+      color:red;
+      font-weight:500;
+    }
+
+    @media (max-width:420px){
+      .card{ padding:20px; }
+      h2{ font-size:16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar" aria-hidden="true"></div>
+
+  <div class="signup-wrapper">
+    <div class="card" role="region" aria-label="Student Sign Up Form">
+      <h2>Student Sign Up</h2>
+      <p class="subtitle">Enter your details to create your account</p>
+
+      <form id="signup-form" autocomplete="on" novalidate>
+        <label for="name">Name</label>
+        <input id="name" name="name" type="text" placeholder="Enter your name" required />
+
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" placeholder="Enter your email" required />
+
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" placeholder="Enter your password" required />
+
+        <label for="role">Role</label>
+        <select id="role" name="role" disabled>
+          <option value="student" selected>Student</option>
+        </select>
+
+        <button class="btn" type="submit">Sign Up</button>
+        <a class="btn-back" href="StudentLogin.html">Back to Login</a>
+        <p id="message"></p>
+
+        <div class="meta">
+          <a href="StudentLogin.html">Already have an account? Log in</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const role = 'student';
+
+      const messageBox = document.getElementById('message');
+      messageBox.textContent = '';
+
+      try {
+        const response = await fetch("http://localhost:5000/signup", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password, role })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          messageBox.textContent = data.message || 'Error occurred while signing up.';
+          return;
+        }
+
+        messageBox.style.color = 'green';
+        messageBox.textContent = data.message;
+        alert(`${role} signup successful! Redirecting to login page...`);
+        window.location.href = 'StudentLogin.html';
+      } catch (err) {
+        console.error(err);
+        messageBox.textContent = 'Server error. Please try again later.';
+      }
+    });
+  </script>
+</body>
+</html>

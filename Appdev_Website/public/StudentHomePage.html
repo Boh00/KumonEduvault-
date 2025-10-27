@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Student Home — KumonEduvault</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#7fd5f1;--card-bg:#fff;--muted:#6b7280;--accent:#0f1724;
+  --pill-border:#e6e8ea;--shadow:0 8px 20px rgba(15,23,42,0.08);
+  --radius:10px;--gap:20px;--max-width:1200px;
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--accent);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.header{background:white;padding:14px 26px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 0 rgba(0,0,0,0.06);position:sticky;top:0;z-index:40}
+.brand{font-weight:700}
+nav ul{list-style:none;margin:0;padding:0;display:flex;gap:14px;align-items:center}
+nav a{font-size:14px;color:var(--muted);padding:6px 10px;border-radius:8px}
+nav a.active{background:#f3f4f6;color:var(--accent)}
+.page{max-width:var(--max-width);margin:28px auto;padding:0 22px;display:grid;grid-template-columns:1fr 2fr;gap:28px;align-items:start}
+.left-col{display:flex;flex-direction:column;gap:18px}
+.subject-card{background:var(--card-bg);border-radius:10px;padding:14px;display:flex;gap:14px;align-items:center;border:1px solid var(--pill-border);box-shadow:var(--shadow)}
+.thumb{width:86px;height:86px;background:linear-gradient(180deg,#eee,#e6e6e6);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:600;flex:0 0 86px}
+.subject-body h4{margin:0 0 6px;font-size:16px}
+.subject-body p{margin:0;color:var(--muted);font-size:13px}
+.score-pill{margin-top:8px;display:inline-block;padding:6px 8px;font-size:12px;border-radius:8px;background:white;border:1px solid var(--pill-border);color:var(--muted)}
+.notice{background:var(--card-bg);border-radius:8px;padding:12px;border:1px solid var(--pill-border);box-shadow:var(--shadow);display:flex;gap:12px;align-items:flex-start;position:relative}
+.notice .icon{min-width:28px;height:28px;border-radius:50%;background:#fff;border:1px solid var(--pill-border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:700}
+.notice .content{flex:1}
+.notice .content h5{margin:0;font-size:14px}
+.notice .content p{margin:6px 0 0;color:var(--muted);font-size:13px}
+.notice .content .actions{margin-top:10px}
+.take-btn{background:#111;color:white;padding:8px 10px;border-radius:8px;border:none;font-size:13px;cursor:pointer}
+.notice .close{position:absolute;right:10px;top:10px;border:none;background:transparent;font-size:16px;color:var(--muted);cursor:pointer;line-height:1}
+.right-col{display:flex;flex-direction:column;gap:18px}
+.welcome{background:transparent;padding:0;margin:0;}
+.welcome h1{margin:0;font-size:56px;line-height:1;font-weight:800;}
+.welcome p{color:#2c6c84;margin-top:10px;font-weight:500}
+.file-card{background:var(--card-bg);border-radius:8px;padding:20px 24px;border:1px solid var(--pill-border);box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;width:100%;max-width:600px;margin:0 auto}
+#upload-form{width:100%;display:flex;flex-direction:column;gap:14px}
+.file-preview{width:100%;height:200px;background:linear-gradient(180deg,#e9e9e9,#dedede);border-radius:8px;border:2px dashed var(--pill-border);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:15px;overflow:hidden;text-align:center;position:relative}
+.file-preview span{position:absolute;}
+.file-preview img{max-width:100%;max-height:100%;object-fit:contain}
+.form-row{display:flex;flex-direction:column;gap:6px}
+label{font-size:13px;color:var(--muted)}
+input[type="text"],select,input[type="file"]{padding:10px 12px;border-radius:8px;border:1px solid var(--pill-border);font-size:14px;outline:none;background:white;width:100%}
+button[type="submit"]{background:#111;color:#fff;padding:10px 12px;border:none;border-radius:8px;font-size:14px;cursor:pointer;transition:background .2s}
+button[type="submit"]:hover{background:#333}
+@media (max-width:980px){.page{grid-template-columns:1fr;padding-bottom:40px}.welcome h1{font-size:40px}.file-preview{height:160px} }
+@media (max-width:520px){.welcome h1{font-size:32px}.thumb{width:72px;height:72px;flex:0 0 72px}.file-preview{height:140px} }
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="brand">KumonEduvault</div>
+  <nav>
+    <ul>
+      <li><a href="Mainhomepage.html" class="active">Home</a></li>
+      <li><a href="StudentFileManagement.html">Files</a></li>
+      <li><a href="ActivityLogPage(Student).html">Activity</a></li>
+      <li><a href="StudentsSettingsPage.html">Settings</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main class="page">
+  <section class="left-col">
+    <!-- Reading Card -->
+    <div class="subject-card">
+      <div class="thumb">📘</div>
+      <div class="subject-body">
+        <h4>Reading</h4>
+        <p>Kumon Level</p>
+        <div class="progress" style="height:10px; margin-top:8px; border-radius:5px; background:#e6e8ea;">
+          <div id="reading-progress" style="width:0%; height:100%; background:#7fd5f1; border-radius:5px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mathematics Card -->
+    <div class="subject-card">
+      <div class="thumb">🧮</div>
+      <div class="subject-body">
+        <h4>Mathematics</h4>
+        <p>Kumon Level</p>
+        <div class="progress" style="height:10px; margin-top:8px; border-radius:5px; background:#e6e8ea;">
+          <div id="math-progress" style="width:0%; height:100%; background:#7fd5f1; border-radius:5px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notifications-container"></div>
+  </section>
+
+  <section class="right-col">
+    <div class="welcome">
+      <h1 id="welcome-name">Welcome, Student!</h1>
+      <p>Let's start the day fresh!</p>
+    </div>
+
+    <div class="file-card">
+      <form id="upload-form" enctype="multipart/form-data">
+        <div class="file-preview" id="file-preview"><span>Preview Image</span></div>
+        <div class="form-row">
+          <label for="file">Select File (PDF, PNG, JPG)</label>
+          <input type="file" id="file" name="file" accept=".pdf,.png,.jpg,.jpeg" required />
+        </div>
+        <div class="form-row">
+          <label for="file-name">File Name</label>
+          <input id="file-name" name="fileName" type="text" placeholder="Worksheet Name" required />
+        </div>
+        <div class="form-row">
+          <label for="worksheet-val">Worksheet Value</label>
+          <input id="worksheet-val" name="worksheetValue" type="text" placeholder="Value" required />
+        </div>
+        <div class="form-row">
+          <label for="instructor">Instructor</label>
+          <select id="instructor" name="instructor" required>
+            <option value="">Select Instructor</option>
+          </select>
+        </div>
+        <input type="hidden" id="email" name="email" />
+        <button type="submit">Upload</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    const storedUser = localStorage.getItem("loggedInUser");
+    if (!storedUser) return (window.location.href = "StudentLogin.html");
+
+    const user = JSON.parse(storedUser);
+    if (!user.email || user.role !== "student") {
+      localStorage.removeItem("loggedInUser");
+      return (window.location.href = "StudentLogin.html");
+    }
+
+    document.getElementById("welcome-name").textContent = `Welcome, ${user.name}!`;
+    document.getElementById("email").value = user.email;
+
+    // ✅ Step 1: Load full student info and progress
+    async function loadStudentInfo() {
+      try {
+        const res = await fetch(`http://localhost:5000/student/${user.email}`);
+        const studentData = await res.json();
+
+        if (!res.ok || !studentData._id) {
+          throw new Error(studentData.message || "Could not load student info");
+        }
+
+        user.id = studentData._id;
+        localStorage.setItem("loggedInUser", JSON.stringify(user));
+
+        if (studentData.progress) {
+          document.getElementById("reading-progress").style.width =
+            `${studentData.progress.reading || 0}%`;
+          document.getElementById("math-progress").style.width =
+            `${studentData.progress.math || 0}%`;
+        }
+
+        fetchNotifications(user.id);
+      } catch (err) {
+        console.error("Error loading student info:", err);
+        alert("Could not load your student data.");
+      }
+    }
+
+    // ✅ Step 2: Load notifications
+    async function fetchNotifications(studentId) {
+      if (!studentId) return;
+      try {
+        const res = await fetch(`http://localhost:5000/notifications/${studentId}/student`);
+        const notifications = await res.json();
+
+        const container = document.getElementById("notifications-container");
+        container.innerHTML = "";
+        if (!notifications.length) {
+          container.innerHTML = "<p>No new notifications.</p>";
+          return;
+        }
+
+        notifications.forEach((n) => {
+          const notice = document.createElement("div");
+          notice.classList.add("notice");
+          notice.dataset.id = n._id;
+          notice.innerHTML = `
+            <div class="icon">📝</div>
+            <div class="content">
+              <h5>${n.title || "Notification"}</h5>
+              <p>${n.message}</p>
+              <div class="actions">
+                <button class="take-btn">Acknowledge</button>
+              </div>
+            </div>
+          `;
+
+          notice.querySelector(".take-btn").addEventListener("click", async () => {
+            try {
+              await fetch(`http://localhost:5000/notifications/${n._id}/read`, {
+                method: "PATCH",
+              });
+            } catch (err) {
+              console.error("Error marking notification as read:", err);
+            }
+            notice.style.transition = "opacity 0.4s ease";
+            notice.style.opacity = "0";
+            setTimeout(() => notice.remove(), 400);
+          });
+
+          container.appendChild(notice);
+        });
+      } catch (err) {
+        console.error("Error fetching notifications:", err);
+      }
+    }
+
+    // ✅ Step 3: Fetch instructors directly from MongoDB
+    async function loadInstructors() {
+      try {
+        const response = await fetch("http://localhost:5000/instructors");
+        if (!response.ok) throw new Error("Failed to fetch instructors");
+
+        const instructors = await response.json();
+        const instructorSelect = document.getElementById("instructor");
+        instructorSelect.innerHTML = '<option value="">Select Instructor</option>';
+
+        if (!instructors.length) {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = "No instructors available";
+          instructorSelect.appendChild(option);
+          return;
+        }
+
+        instructors.forEach((instructor) => {
+          const option = document.createElement("option");
+          option.value = instructor._id;
+          option.textContent = instructor.fullName || instructor.name || "Unnamed Instructor";
+          instructorSelect.appendChild(option);
+        });
+      } catch (err) {
+        console.error("Error loading instructors:", err);
+      }
+    }
+
+    // ✅ Step 4: File preview
+    const fileInput = document.getElementById("file");
+    const preview = document.getElementById("file-preview");
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      preview.innerHTML = "";
+      if (file.type.startsWith("image/")) {
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(file);
+        preview.appendChild(img);
+      } else {
+        preview.textContent = file.name;
+      }
+    });
+
+    // ✅ Step 5: File upload
+    document.getElementById("upload-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      try {
+        const uploadResponse = await fetch("http://localhost:5000/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const result = await uploadResponse.json();
+        alert(result.message);
+        e.target.reset();
+        preview.innerHTML = "<span>Preview Image</span>";
+      } catch (err) {
+        console.error("Error uploading file:", err);
+        alert("File upload failed");
+      }
+    });
+
+    // ✅ Start everything
+    loadStudentInfo();
+    loadInstructors();
+  });
+  </script>
+
+</body>
+</html>

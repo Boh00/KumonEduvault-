@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KumonEduvault — Admin Dashboard</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #00bff0;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      background: white;
+      color: #111;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 25px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    header h1 {
+      font-size: 20px;
+      margin: 0;
+    }
+
+    header nav a {
+      margin-left: 10px;
+      color: #333;
+      text-decoration: none;
+      font-weight: 500;
+      background: #f1f1f1;
+      padding: 6px 12px;
+      border-radius: 8px;
+    }
+
+    main {
+      display: flex;
+      flex: 1;
+      padding: 20px;
+      gap: 20px;
+    }
+
+    /* Left, Center, Right Panels */
+    .panel {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    #left-panel {
+      flex: 0.8;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      height: fit-content;
+    }
+
+    #center-panel {
+      flex: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #right-panel {
+      flex: 0.8;
+      height: fit-content;
+    }
+
+    /* Quick Actions */
+    h3 {
+      margin-top: 0;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    #add-user-btn, #export-csv {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+
+    #add-user-btn {
+      background: #007bff;
+      color: white;
+    }
+
+    #export-csv {
+      background: white;
+      border: 1px solid #007bff;
+      color: #007bff;
+    }
+
+    select, input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .filter-group {
+      margin-top: 10px;
+    }
+
+    /* User Management Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background: #f8f8f8;
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background: #f4f9ff;
+    }
+
+    .edit, .del {
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      color: white;
+    }
+
+    .edit {
+      background: #007bff;
+    }
+
+    .del {
+      background: #dc3545;
+    }
+
+    /* Right Panel */
+    .toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+    }
+
+    .toggle input {
+      transform: scale(1.3);
+    }
+
+    /* Modal */
+    #modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.3);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #modal {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      width: 400px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+
+    #modal h2 {
+      margin: 0 0 10px;
+    }
+
+    #modal label {
+      display: block;
+      margin-top: 8px;
+      font-weight: 600;
+    }
+
+    #modal input, #modal select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-top: 4px;
+    }
+
+    #modal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    #modal-save {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+
+    #modal-cancel {
+      background: #999;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      background: #333;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 6px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #toast.show {
+      opacity: 1;
+    }
+
+    #spinner {
+      text-align: center;
+      font-weight: bold;
+      color: #555;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>KumonEduvault — Admin</h1>
+    <nav>
+      <a href="#">Home</a>
+      <a href="#">Logs</a>
+      <a href="#">File Management</a>
+      <a href="#">Settings</a>
+      <a href="#">ThreatDetection</a>
+      <button id="logout-btn" style="margin-left:10px;background:#dc3545;color:white;border:none;padding:6px 12px;border-radius:8px;">Logout</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- LEFT PANEL -->
+    <div id="left-panel" class="panel">
+      <h3>Quick Actions</h3>
+      <button id="add-user-btn">+ Add User</button>
+      <button id="export-csv">Export CSV</button>
+
+      <div class="filter-group">
+        <h4>Filters</h4>
+        <select id="role-filter">
+          <option value="">All roles</option>
+          <option value="student">Student</option>
+          <option value="instructor">Instructor</option>
+        </select>
+        <input id="search-filter" placeholder="Search by email or name">
+        <button id="clear-filters" style="margin-top:5px;padding:8px;border:none;background:#f1f1f1;border-radius:6px;">Clear Filters</button>
+      </div>
+
+      <div class="filter-group">
+        <h4>System Health</h4>
+        <p>Users: <span id="user-count">0</span></p>
+        <p>Active sessions: <strong>16</strong></p>
+        <p>Last backup: <strong id="last-backup"></strong></p>
+        <button id="run-backup" style="background:#007bff;color:white;border:none;padding:8px 12px;border-radius:6px;">Run Backup</button>
+      </div>
+    </div>
+
+    <!-- CENTER PANEL -->
+    <div id="center-panel" class="panel">
+      <h3>User Management</h3>
+      <div id="spinner">Loading users...</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th><th>Email</th><th>Role</th><th>Created</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="users-table-body"></tbody>
+      </table>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div id="right-panel" class="panel">
+      <h3>Settings</h3>
+      <div class="toggle">
+        <label>Allow self sign-up</label>
+        <input type="checkbox" id="allow-signup">
+      </div>
+      <div class="toggle">
+        <label>Require 2FA</label>
+        <input type="checkbox" id="require-2fa">
+      </div>
+
+      <h3 style="margin-top:20px;">Security Logs</h3>
+      <p>No logs yet.</p>
+      <button id="demo-log" style="background:#007bff;color:white;border:none;padding:8px 12px;border-radius:6px;">Generate Demo Log</button>
+      <button id="clear-logs" style="background:#f1f1f1;border:none;padding:8px 12px;border-radius:6px;">Clear Logs</button>
+    </div>
+  </main>
+
+  <!-- MODAL -->
+  <div id="modal-backdrop">
+    <div id="modal">
+      <h2 id="modal-title">Add User</h2>
+      <form id="user-form">
+        <label>Name</label>
+        <input id="u-name" name="name" required>
+
+        <label>Email</label>
+        <input id="u-email" name="email" type="email" required>
+
+        <label>Password</label>
+        <input id="u-password" name="password" type="password" placeholder="Leave blank to keep current">
+
+        <label>Role</label>
+        <select id="u-role" name="role" required>
+          <option value="student">Student</option>
+          <option value="instructor">Instructor</option>
+        </select>
+
+        <label>Subjects (comma separated)</label>
+        <input id="u-subjects" name="subjects" placeholder="Math, Reading">
+
+        <div id="modal-buttons">
+          <button id="modal-save" type="submit">Save</button>
+          <button id="modal-cancel" type="button">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    const usersTableBody = document.getElementById('users-table-body');
+    const spinner = document.getElementById('spinner');
+    const toast = document.getElementById('toast');
+    const modalBackdrop = document.getElementById('modal-backdrop');
+    const userForm = document.getElementById('user-form');
+    const modalCancel = document.getElementById('modal-cancel');
+    const btnAddUser = document.getElementById('add-user-btn');
+    const userCount = document.getElementById('user-count');
+    const lastBackup = document.getElementById('last-backup');
+    let editUserId = null;
+
+    function showToast(msg, type='info') {
+      toast.textContent = msg;
+      toast.style.background = type === 'success' ? '#28a745' : (type === 'error' ? '#dc3545' : '#333');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    async function loadUsers() {
+      spinner.style.display = 'block';
+      usersTableBody.innerHTML = '';
+      try {
+        const res = await fetch('http://localhost:5000/admin/users', { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to fetch users');
+        const users = await res.json();
+        userCount.textContent = users.length;
+        if (!users.length) {
+          usersTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No users found.</td></tr>';
+          return;
+        }
+        users.forEach(u => {
+          const tr = document.createElement('tr');
+          tr.dataset.id = u._id;
+          const created = new Date(u.createdAt || Date.now()).toLocaleString();
+          tr.innerHTML = `
+            <td>${u.name || ''}</td>
+            <td>${u.email || ''}</td>
+            <td>${u.role || ''}</td>
+            <td>${created}</td>
+            <td><button class="edit">Edit</button> <button class="del">Delete</button></td>`;
+          usersTableBody.appendChild(tr);
+        });
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        spinner.style.display = 'none';
+      }
+    }
+
+    btnAddUser.onclick = () => {
+      editUserId = null;
+      userForm.reset();
+      document.getElementById('modal-title').textContent = 'Add User';
+      modalBackdrop.style.display = 'flex';
+    };
+
+    modalCancel.onclick = () => modalBackdrop.style.display = 'none';
+
+    userForm.onsubmit = async e => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(userForm).entries());
+      const url = editUserId ? `http://localhost:5000/admin/users/${editUserId}` : 'http://localhost:5000/admin/users';
+      const method = editUserId ? 'PUT' : 'POST';
+      try {
+        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(data) });
+        const msg = await res.json();
+        if (!res.ok) throw new Error(msg.message);
+        showToast(msg.message, 'success');
+        modalBackdrop.style.display = 'none';
+        loadUsers();
+      } catch (err) { showToast(err.message, 'error'); }
+    };
+
+    usersTableBody.onclick = async e => {
+      const btn = e.target;
+      const row = btn.closest('tr');
+      if (btn.classList.contains('edit')) {
+        editUserId = row.dataset.id;
+        document.getElementById('u-name').value = row.children[0].textContent;
+        document.getElementById('u-email').value = row.children[1].textContent;
+        document.getElementById('u-role').value = row.children[2].textContent;
+        document.getElementById('modal-title').textContent = 'Edit User';
+        modalBackdrop.style.display = 'flex';
+      }
+      if (btn.classList.contains('del')) {
+        if (!confirm('Are you sure?')) return;
+        try {
+          const res = await fetch(`http://localhost:5000/admin/users/${row.dataset.id}`, { method: 'DELETE', credentials: 'include' });
+          const msg = await res.json();
+          if (!res.ok) throw new Error(msg.message);
+          showToast(msg.message, 'success');
+          loadUsers();
+        } catch (err) { showToast(err.message, 'error'); }
+      }
+    };
+
+    document.getElementById('logout-btn').onclick = async () => {
+      await fetch('http://localhost:5000/logout', { method: 'POST', credentials: 'include' });
+      window.location.href = 'Mainhomepage.html';
+    };
+
+    // Backup Info
+    lastBackup.textContent = new Date().toLocaleString();
+
+    loadUsers();
+  </script>
+</body>
+</html>

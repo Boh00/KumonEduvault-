@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Student File Manager — KumonEduvault</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #10ceeb;
+      --card: #fff;
+      --muted: #6b7280;
+      --accent: #0f1724;
+      --primary: #0b74d1;
+      --radius: 10px;
+      --border: #e6eef6;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+    }
+    * { box-sizing:border-box }
+    html,body { height:100%;margin:0;background:var(--bg);color:var(--accent); }
+    header { background:#fff;padding:14px 22px;border-bottom:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between }
+    .brand { font-weight:700 }
+    nav ul { display:flex;gap:12px;list-style:none;margin:0;padding:0 }
+    nav a { padding:8px 10px;border-radius:8px;color:var(--muted);text-decoration:none }
+    nav a.active { background:#f3f7fb;color:var(--accent) }
+
+    .wrap { max-width:1200px;margin:22px auto;padding:0 18px;display:grid;grid-template-columns:300px 1fr;gap:20px }
+    @media (max-width:900px){ .wrap{grid-template-columns:1fr} }
+
+    .panel { background:var(--card);border-radius:12px;padding:14px;border:1px solid var(--border) }
+    .panel h3 { margin:0 0 10px;font-size:15px }
+
+    .upload-form { display: flex; flex-direction: column; gap: 12px; }
+    .upload-preview {
+      height: 180px; background: #f1f1f1; border: 2px dashed #d0d0d0; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; color: var(--muted);
+      font-size: 14px; overflow: hidden;
+    }
+    .upload-preview img { width: 100%; height: 100%; object-fit: contain; }
+
+    .upload-form input, .upload-form select {
+      padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 14px;
+    }
+
+    .btn {
+      display:inline-block; padding:10px 12px; border-radius:8px; background:var(--primary);
+      color:#fff; border:none; cursor:pointer; font-weight:700; text-align:center;
+      transition: background 0.2s;
+    }
+    .btn:hover { background:#095ca3; }
+
+    .topbar { display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px }
+    .search input { flex:1;padding:10px;border-radius:8px;border:1px solid var(--border) }
+    .grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px }
+    .file-card {
+      background:var(--card);border-radius:10px;padding:12px;border:1px solid var(--border);
+      box-shadow:0 8px 20px rgba(15,23,42,0.03);display:flex;flex-direction:column;gap:10px
+    }
+    .thumb { height:120px;border-radius:8px;background:linear-gradient(180deg,#eee,#e6e6e6);
+      display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;overflow:hidden }
+    .thumb img { width:100%;height:100%;object-fit:cover; }
+    .file-info { font-size:13px;color:var(--muted); }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="brand">KumonEduvault — Student Files</div>
+    <nav>
+      <ul>
+        <li><a href="StudentHomePage.html">Home</a></li>
+        <li><a href="StudentFileManagement.html" class="active">Files</a></li>
+        <li><a href="ActivityLogPage(Student).html">Activity</a></li>
+        <li><a href="StudentsSettingsPage.html">Settings</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <!-- LEFT PANEL -->
+    <aside class="panel">
+      <h3>Upload Worksheet</h3>
+      <form id="upload-form" class="upload-form">
+        <div class="upload-preview" id="upload-preview">Preview Image</div>
+
+        <label>Select File (PDF, PNG, JPG)</label>
+        <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg" required>
+
+        <input type="text" id="file-name" placeholder="Worksheet Name" required>
+        <input type="text" id="worksheet-value" placeholder="Value" required>
+
+        <label>Instructor</label>
+        <select id="instructor-select" required>
+          <option value="">Select Instructor</option>
+        </select>
+
+        <button type="submit" class="btn">Upload</button>
+      </form>
+    </aside>
+
+    <!-- RIGHT SIDE -->
+    <section>
+      <div class="topbar">
+        <div class="search">
+          <input id="global-search" placeholder="Search files or categories...">
+        </div>
+      </div>
+      <div id="grid" class="grid"></div>
+    </section>
+  </main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const instructorSelect = document.getElementById('instructor-select');
+  const fileInput = document.getElementById('file-input');
+  const preview = document.getElementById('upload-preview');
+  const uploadForm = document.getElementById('upload-form');
+  const grid = document.getElementById('grid');
+
+  // === Load instructors from backend ===
+  async function loadInstructors() {
+    try {
+      const res = await fetch('http://localhost:5000/instructors');
+      const instructors = await res.json();
+      instructorSelect.innerHTML = '<option value="">Select Instructor</option>';
+      instructors.forEach(i => {
+        const opt = document.createElement('option');
+        opt.value = i.fullName;
+        opt.textContent = `${i.fullName} (${i.subject})`;
+        instructorSelect.appendChild(opt);
+      });
+    } catch (err) {
+      console.error('Error loading instructors:', err);
+    }
+  }
+
+  // === Load files ===
+  async function loadFiles() {
+    try {
+      const res = await fetch('http://localhost:5000/files');
+      const files = await res.json();
+      renderFiles(files);
+    } catch (err) {
+      console.error('Error loading files:', err);
+    }
+  }
+
+  // === Render files in the grid ===
+  function renderFiles(files) {
+    grid.innerHTML = '';
+    if (!files.length) {
+      grid.innerHTML = '<p style="opacity:0.6;">No files uploaded yet.</p>';
+      return;
+    }
+
+    files.forEach(file => {
+      const card = document.createElement('div');
+      card.className = 'file-card';
+      const isImage = file.contentType?.startsWith('image/');
+      const previewContent = isImage
+        ? `<img src="data:${file.contentType};base64,${file.fileData}" alt="file preview"/>`
+        : `<div class="thumb">📄 ${file.fileName}</div>`;
+      card.innerHTML = `
+        <div class="thumb">${previewContent}</div>
+        <strong>${file.fileName}</strong>
+        <div class="file-info">Instructor: ${file.instructor}</div>
+        <div class="file-info">Worksheet: ${file.worksheetValue}</div>
+        <button class="btn" onclick="downloadFile('${file._id}')">Download</button>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  // === Preview selected file ===
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) { preview.innerHTML = 'Preview Image'; return; }
+
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = e => { preview.innerHTML = `<img src="${e.target.result}" alt="preview">`; };
+      reader.readAsDataURL(file);
+    } else {
+      preview.innerHTML = '📄 ' + file.name;
+    }
+  });
+
+  // === Handle upload submission ===
+  uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const file = fileInput.files[0];
+    const fileName = document.getElementById('file-name').value.trim();
+    const worksheetValue = document.getElementById('worksheet-value').value.trim();
+    const instructor = instructorSelect.value;
+    const email = localStorage.getItem('userEmail') || '';
+
+    if (!file || !fileName || !worksheetValue || !instructor) {
+      alert('Please complete all fields before uploading.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('fileName', fileName);
+    formData.append('worksheetValue', worksheetValue);
+    formData.append('instructor', instructor);
+    formData.append('email', email);
+
+    try {
+      const res = await fetch('http://localhost:5000/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (data.success) {
+        alert('✅ File successfully uploaded to MongoDB!');
+        uploadForm.reset();
+        preview.innerHTML = 'Preview Image';
+        loadFiles(); // Refresh grid automatically
+      } else {
+        alert('❌ Upload failed: ' + data.message);
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Error uploading file. Check console for details.');
+    }
+  });
+
+  // === Download file function ===
+  window.downloadFile = async function (id) {
+    try {
+      const res = await fetch(`http://localhost:5000/files/${id}`);
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = id; // filename will be automatically set by browser
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('Failed to download file.');
+    }
+  };
+
+  loadInstructors();
+  loadFiles();
+});
+</script>
+
+</body>
+</html>

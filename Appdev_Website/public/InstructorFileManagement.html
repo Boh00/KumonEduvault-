@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KumonEduvault — Instructor Files</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      background-color: #00cfff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: white;
+      padding: 10px 20px;
+      font-weight: bold;
+      border-bottom: 2px solid #ddd;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: black;
+      margin-left: 15px;
+      font-weight: normal;
+    }
+
+    .logout {
+      background-color: #e74c3c;
+      color: white;
+      padding: 5px 12px;
+      border-radius: 5px;
+      text-decoration: none;
+      margin-left: 10px;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      padding: 15px;
+    }
+
+    h3 {
+      margin-top: 0;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 5px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border-bottom: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f5f5f5;
+    }
+
+    .actions button {
+      margin-right: 5px;
+      padding: 5px 8px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: white;
+    }
+
+    .view-btn { background-color: #3498db; }
+    .edit-btn { background-color: #f1c40f; }
+    .delete-btn { background-color: #e74c3c; }
+
+    .preview {
+      text-align: center;
+    }
+
+    .preview img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <nav>
+    <div>KumonEduvault — Instructor Files</div>
+    <div>
+      <a href="InstructorHomePage.html">Home</a>
+      <a href="InstructorActivityPage.html">Activity Logs</a>
+      <a href="InstructorSettingsPage.html">Settings</a>
+      <a href="#" id="logoutBtn" class="logout">Logout</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- LEFT: Instructor Info -->
+    <div class="card" id="instructor-info">
+      <h3>My Profile</h3>
+      <div id="instructor-details">Loading instructor info...</div>
+    </div>
+
+    <!-- MIDDLE: Student Submissions -->
+    <div class="card">
+      <h3>Student Submissions</h3>
+      <table id="submissions-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>File Name</th>
+            <th>Submitted</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="submissions-body">
+          <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- RIGHT: Preview & Edit -->
+    <div class="card preview">
+      <h3>Preview</h3>
+      <div id="preview-area">Select a file to preview</div>
+      <div id="edit-area" style="display:none; text-align:left; margin-top:15px;">
+        <label>File Name:</label>
+        <input type="text" id="edit-file-name" style="width:100%; margin-bottom:10px;">
+        <label>Remarks:</label>
+        <input type="text" id="edit-remarks" style="width:100%; margin-bottom:10px;">
+        <button id="save-edit" class="edit-btn" style="width:100%;">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const instructor = JSON.parse(localStorage.getItem('loggedInUser'));
+      const instructorDetails = document.getElementById('instructor-details');
+      const submissionsBody = document.getElementById('submissions-body');
+      const previewArea = document.getElementById('preview-area');
+      const editArea = document.getElementById('edit-area');
+      const editFileName = document.getElementById('edit-file-name');
+      const editRemarks = document.getElementById('edit-remarks');
+      const saveEdit = document.getElementById('save-edit');
+      const logoutBtn = document.getElementById('logoutBtn');
+      let selectedSubmission = null;
+
+      // 🧠 Redirect if not logged in
+      if (!instructor) {
+        alert('You must be logged in to access this page.');
+        window.location.href = 'InstructorLogin.html';
+        return;
+      }
+
+      // ✅ Show instructor info
+      instructorDetails.innerHTML = `
+        <p><strong>Name:</strong> ${instructor.name}</p>
+        <p><strong>Email:</strong> ${instructor.email}</p>
+        <p><strong>Subject:</strong> ${instructor.subject || 'Not set'}</p>
+      `;
+
+      // ✅ Fetch student submissions linked to this instructor
+      try {
+        const res = await fetch(`http://localhost:5000/api/instructor/${instructor._id}/submissions`, {
+          credentials: 'include'
+        });
+        const submissions = await res.json();
+
+        if (!Array.isArray(submissions) || submissions.length === 0) {
+          submissionsBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No submissions found.</td></tr>`;
+          return;
+        }
+
+        submissionsBody.innerHTML = '';
+        submissions.forEach(file => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${file.uploaderEmail || 'Unknown'}</td>
+            <td>${file.fileName}</td>
+            <td>${new Date(file.uploadedAt).toLocaleString()}</td>
+            <td class="actions">
+              <button class="view-btn">View</button>
+              <button class="edit-btn">Edit</button>
+              <button class="delete-btn">Delete</button>
+            </td>
+          `;
+
+          const viewBtn = tr.querySelector('.view-btn');
+          const editBtn = tr.querySelector('.edit-btn');
+          const deleteBtn = tr.querySelector('.delete-btn');
+
+          // 🔍 View File
+          viewBtn.addEventListener('click', () => {
+            previewArea.innerHTML = `
+              <p><strong>${file.fileName}</strong></p>
+              <p><em>From: ${file.uploaderEmail || 'Unknown'}</em></p>
+              ${file.contentType?.startsWith('image/')
+                ? `<img src="data:${file.contentType};base64,${file.data}" />`
+                : `<p>[Preview not available]</p>`}
+            `;
+            editArea.style.display = 'none';
+          });
+
+          // ✏️ Edit
+          editBtn.addEventListener('click', () => {
+            selectedSubmission = file;
+            editFileName.value = file.fileName;
+            editRemarks.value = file.remarks || '';
+            previewArea.innerHTML = `<p>Editing: ${file.fileName}</p>`;
+            editArea.style.display = 'block';
+          });
+
+          // 🗑️ Delete
+          deleteBtn.addEventListener('click', async () => {
+            if (confirm('Delete this submission?')) {
+              const delRes = await fetch(`http://localhost:5000/api/instructor/submissions/${file._id}`, {
+                method: 'DELETE',
+                credentials: 'include'
+              });
+              if (delRes.ok) tr.remove();
+              else alert('Failed to delete submission.');
+            }
+          });
+
+          submissionsBody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error('Error loading submissions:', err);
+        submissionsBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">Error loading data.</td></tr>`;
+      }
+
+      // 💾 Save Edits
+      saveEdit.addEventListener('click', async () => {
+        if (!selectedSubmission) return alert('No submission selected.');
+
+        const update = {
+          fileName: editFileName.value,
+          remarks: editRemarks.value
+        };
+
+        const res = await fetch(`http://localhost:5000/api/instructor/submissions/${selectedSubmission._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(update),
+          credentials: 'include'
+        });
+
+        if (res.ok) {
+          alert('Submission updated successfully.');
+          location.reload();
+        } else {
+          alert('Failed to update submission.');
+        }
+      });
+
+      // 🚪 Logout
+      logoutBtn.addEventListener('click', async () => {
+        await fetch('http://localhost:5000/api/logout', { credentials: 'include' });
+        localStorage.removeItem('loggedInUser');
+        window.location.href = 'InstructorLogin.html';
+      });
+    });
+  </script>
+</body>
+</html>

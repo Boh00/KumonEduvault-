@@ -1,534 +1,470 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin Home — KumonEduvault</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>KumonEduvault — Admin Dashboard</title>
   <style>
-    :root{
-      --bg:#10ceeb;
-      --card:#ffffff;
-      --accent:#0f1724;
-      --muted:#6b7280;
-      --primary:#0b74d1;
-      --danger:#e23b3b;
-      --border:#e7eef6;
-      --shadow: 0 8px 24px rgba(12,20,30,0.06);
-      --radius:10px;
-      --maxw:1200px;
-      font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #00bff0;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--accent);-webkit-font-smoothing:antialiased}
-    a{color:inherit;text-decoration:none}
 
-    /* Header */
-    .header{
-      background:white;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 0 rgba(0,0,0,0.04);position:sticky;top:0;z-index:50
+    header {
+      background: white;
+      color: #111;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 25px;
+      border-bottom: 1px solid #ddd;
     }
-    .brand{font-weight:700}
-    nav ul{display:flex;gap:12px;list-style:none;margin:0;padding:0}
-    nav a{padding:8px 10px;border-radius:8px;color:var(--muted);font-weight:600}
-    nav a.active{background:#f3f7fb;color:var(--accent)}
 
-    /* Page layout */
-    .page{max-width:var(--maxw);margin:28px auto;padding:0 18px;display:grid;grid-template-columns:280px 1fr 360px;gap:20px;align-items:start}
-    @media (max-width:1100px){.page{grid-template-columns:1fr 360px}.center{order:2}.right{order:1}}
-    @media (max-width:800px){.page{grid-template-columns:1fr;gap:18px}}
+    header h1 {
+      font-size: 20px;
+      margin: 0;
+    }
 
-    .card{background:var(--card);border-radius:10px;padding:14px;border:1px solid var(--border);box-shadow:var(--shadow)}
-    .section-title{margin:0 0 10px;font-weight:700;font-size:15px}
+    header nav a {
+      margin-left: 10px;
+      color: #333;
+      text-decoration: none;
+      font-weight: 500;
+      background: #f1f1f1;
+      padding: 6px 12px;
+      border-radius: 8px;
+    }
 
-    /* LEFT: Quick actions / filters */
-    .left-col .btn{display:block;width:100%;padding:10px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-weight:700;cursor:pointer;margin-bottom:10px}
-    .filter-row{display:flex;gap:8px;margin-bottom:8px}
-    .filter-row select, .filter-row input{flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:#fff}
+    main {
+      display: flex;
+      flex: 1;
+      padding: 20px;
+      gap: 20px;
+    }
 
-    /* CENTER: Users table */
-    .controls{display:flex;gap:12px;align-items:center;margin-bottom:12px}
-    .search{flex:1;display:flex;gap:8px}
-    .search input{flex:1;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:#fff}
-    .small-btn{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer}
-    .table-wrap{overflow:auto;border-radius:8px;border:1px solid var(--border)}
-    table{width:100%;border-collapse:collapse}
-    thead th{background:#fbfeff;padding:12px;text-align:left;font-weight:700;border-bottom:1px solid var(--border)}
-    tbody td{padding:12px;border-bottom:1px solid var(--border)}
-    tbody tr:hover{background:linear-gradient(90deg,rgba(11,116,209,0.02),transparent)}
-    .role-badge{display:inline-block;padding:6px 8px;border-radius:8px;border:1px solid var(--border);font-size:13px;background:#fff}
-    .actions button{margin-left:8px;padding:6px 8px;border-radius:8px;border:none;cursor:pointer}
-    .actions .edit{background:#0b74d1;color:#fff}
-    .actions .del{background:var(--danger);color:#fff}
+    /* Left, Center, Right Panels */
+    .panel {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
 
-    /* RIGHT: Settings and logs */
-    .log{font-size:13px;color:var(--muted);line-height:1.4;max-height:260px;overflow:auto;padding-right:6px}
-    .setting-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-    .toggle{width:44px;height:24px;border-radius:999px;background:#e9f2fb;position:relative;cursor:pointer}
-    .toggle .knob{width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:left .18s}
+    #left-panel {
+      flex: 0.8;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      height: fit-content;
+    }
 
-    /* modal */
-    .modal-backdrop{position:fixed;inset:0;background:rgba(3,6,12,0.45);display:none;align-items:center;justify-content:center;z-index:1000}
-    .modal{width:520px;max-width:94%;background:var(--card);border-radius:12px;padding:18px;border:1px solid var(--border);box-shadow:0 16px 48px rgba(10,16,30,0.5)}
-    .modal h3{margin:0 0 10px}
-    .form-row{display:flex;flex-direction:column;margin-bottom:10px}
-    .form-row label{font-size:13px;color:var(--muted);margin-bottom:6px}
-    .form-row input, .form-row select{padding:10px;border-radius:8px;border:1px solid var(--border);background:#fff}
+    #center-panel {
+      flex: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
 
-    .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
-    .btn-primary{background:var(--primary);color:#fff;padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
-    .btn-secondary{background:#fff;padding:8px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer}
+    #right-panel {
+      flex: 0.8;
+      height: fit-content;
+    }
 
-    /* tiny helpers */
-    .muted{color:var(--muted);font-size:13px}
-    .center{text-align:center}
+    /* Quick Actions */
+    h3 {
+      margin-top: 0;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    #add-user-btn, #export-csv {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+
+    #add-user-btn {
+      background: #007bff;
+      color: white;
+    }
+
+    #export-csv {
+      background: white;
+      border: 1px solid #007bff;
+      color: #007bff;
+    }
+
+    select, input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .filter-group {
+      margin-top: 10px;
+    }
+
+    /* User Management Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background: #f8f8f8;
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background: #f4f9ff;
+    }
+
+    .edit, .del {
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      color: white;
+    }
+
+    .edit {
+      background: #007bff;
+    }
+
+    .del {
+      background: #dc3545;
+    }
+
+    /* Right Panel */
+    .toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+    }
+
+    .toggle input {
+      transform: scale(1.3);
+    }
+
+    /* Modal */
+    #modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.3);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #modal {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      width: 400px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+
+    #modal h2 {
+      margin: 0 0 10px;
+    }
+
+    #modal label {
+      display: block;
+      margin-top: 8px;
+      font-weight: 600;
+    }
+
+    #modal input, #modal select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-top: 4px;
+    }
+
+    #modal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    #modal-save {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+
+    #modal-cancel {
+      background: #999;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      background: #333;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 6px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #toast.show {
+      opacity: 1;
+    }
+
+    #spinner {
+      text-align: center;
+      font-weight: bold;
+      color: #555;
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <header class="header">
-    <div class="brand">KumonEduvault — Admin</div>
-    <nav aria-label="top-nav">
-      <ul>
-        <li><a href="#" class="active">Home</a></li>
-        <li><a href="ActivityLogPage(Admin).html" class="active">Logs</a></li>
-        <li><a href="AdminFileManagement.html" class="active">File Management</a></li>
-        <li><a href="AdminSettingsPage.html" class="active">Settings</a></li>
-        <li><a href="ThreatDetectionPage.html" class="active">ThreatDetection</a></li>
-      </ul>
+  <header>
+    <h1>KumonEduvault — Admin</h1>
+    <nav>
+      <a href="#">Home</a>
+      <a href="#">Logs</a>
+      <a href="#">File Management</a>
+      <a href="#">Settings</a>
+      <a href="#">ThreatDetection</a>
+      <button id="logout-btn" style="margin-left:10px;background:#dc3545;color:white;border:none;padding:6px 12px;border-radius:8px;">Logout</button>
     </nav>
   </header>
 
-  <main class="page" role="main">
-    <!-- LEFT -->
-    <aside class="left-col">
-      <div class="card">
-        <h3 class="section-title">Quick Actions</h3>
-        <button id="btn-add-user" class="btn">+ Add User</button>
-        <button id="btn-export" class="btn" style="background:#fff;color:var(--primary);border:1px solid var(--primary)">Export CSV</button>
-        <hr style="margin:12px 0;border:none;border-top:1px solid var(--border)">
-        <h4 class="muted" style="margin:0 0 8px">Filters</h4>
-        <div class="filter-row">
-          <select id="filter-role">
-            <option value="">All roles</option>
-            <option>Student</option>
-            <option>Instructor</option>
-            <option>Admin</option>
-          </select>
-        </div>
-        <div class="filter-row">
-          <input id="filter-status" placeholder="Search by email or name">
-        </div>
-        <button id="btn-clear-filters" class="small-btn" style="width:100%">Clear Filters</button>
+  <main>
+    <!-- LEFT PANEL -->
+    <div id="left-panel" class="panel">
+      <h3>Quick Actions</h3>
+      <button id="add-user-btn">+ Add User</button>
+      <button id="export-csv">Export CSV</button>
+
+      <div class="filter-group">
+        <h4>Filters</h4>
+        <select id="role-filter">
+          <option value="">All roles</option>
+          <option value="student">Student</option>
+          <option value="instructor">Instructor</option>
+        </select>
+        <input id="search-filter" placeholder="Search by email or name">
+        <button id="clear-filters" style="margin-top:5px;padding:8px;border:none;background:#f1f1f1;border-radius:6px;">Clear Filters</button>
       </div>
 
-      <div class="card" style="margin-top:12px">
-        <h3 class="section-title">System Health</h3>
-        <p class="muted">Users: <strong id="stat-users">0</strong></p>
-        <p class="muted">Active sessions: <strong id="stat-sessions">0</strong></p>
-        <p class="muted">Last backup: <strong id="stat-backup">--</strong></p>
-        <div style="margin-top:10px"><button id="btn-backup" class="small-btn">Run Backup</button></div>
+      <div class="filter-group">
+        <h4>System Health</h4>
+        <p>Users: <span id="user-count">0</span></p>
+        <p>Active sessions: <strong>16</strong></p>
+        <p>Last backup: <strong id="last-backup"></strong></p>
+        <button id="run-backup" style="background:#007bff;color:white;border:none;padding:8px 12px;border-radius:6px;">Run Backup</button>
       </div>
-    </aside>
+    </div>
 
-    <!-- CENTER: user management -->
-    <section class="center card">
-      <h3 class="section-title">User Management</h3>
+    <!-- CENTER PANEL -->
+    <div id="center-panel" class="panel">
+      <h3>User Management</h3>
+      <div id="spinner">Loading users...</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th><th>Email</th><th>Role</th><th>Created</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="users-table-body"></tbody>
+      </table>
+    </div>
 
-      <div class="controls">
-        <div class="search">
-          <input id="search" placeholder="Search users by name or email">
-          <button id="search-clear" class="small-btn">Clear</button>
-        </div>
-        <div>
-          <select id="sort-by" class="small-btn">
-            <option value="name">Sort by name</option>
-            <option value="email">Sort by email</option>
-            <option value="role">Sort by role</option>
-          </select>
-        </div>
-        <div>
-          <button id="btn-refresh" class="small-btn">Refresh</button>
-        </div>
+    <!-- RIGHT PANEL -->
+    <div id="right-panel" class="panel">
+      <h3>Settings</h3>
+      <div class="toggle">
+        <label>Allow self sign-up</label>
+        <input type="checkbox" id="allow-signup">
       </div>
-
-      <div class="table-wrap" role="table" aria-label="User list">
-        <table id="users-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Last Login</th>
-              <th style="width:160px">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- rows populated by JS -->
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- RIGHT: settings & logs -->
-    <aside class="right card">
-      <h3 class="section-title">Settings</h3>
-      <div class="setting-row">
-        <div class="muted">Allow self sign-up</div>
-        <div class="toggle" data-state="on" id="toggle-signup"><div class="knob" style="left:22px"></div></div>
-      </div>
-      <div class="setting-row">
-        <div class="muted">Require 2FA</div>
-        <div class="toggle" data-state="off" id="toggle-2fa"><div class="knob" style="left:3px"></div></div>
+      <div class="toggle">
+        <label>Require 2FA</label>
+        <input type="checkbox" id="require-2fa">
       </div>
 
-      <h3 style="margin-top:14px" class="section-title">Security Logs</h3>
-      <div class="log" id="logs">
-        <!-- logs appended by JS -->
-      </div>
-
-      <div style="margin-top:12px">
-        <button id="btn-generate-log" class="small-btn">Generate Demo Log</button>
-        <button id="btn-clear-logs" class="small-btn" style="background:#fff;border:1px solid var(--border)">Clear Logs</button>
-      </div>
-    </aside>
+      <h3 style="margin-top:20px;">Security Logs</h3>
+      <p>No logs yet.</p>
+      <button id="demo-log" style="background:#007bff;color:white;border:none;padding:8px 12px;border-radius:6px;">Generate Demo Log</button>
+      <button id="clear-logs" style="background:#f1f1f1;border:none;padding:8px 12px;border-radius:6px;">Clear Logs</button>
+    </div>
   </main>
 
-  <!-- Modal: Add / Edit User -->
-  <div class="modal-backdrop" id="modal-backdrop" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <h3 id="modal-title">Add User</h3>
+  <!-- MODAL -->
+  <div id="modal-backdrop">
+    <div id="modal">
+      <h2 id="modal-title">Add User</h2>
       <form id="user-form">
-        <div class="form-row">
-          <label for="u-name">Full name</label>
-          <input id="u-name" required>
-        </div>
-        <div class="form-row">
-          <label for="u-email">Email</label>
-          <input id="u-email" type="email" required>
-        </div>
-        <div class="form-row">
-          <label for="u-role">Role</label>
-          <select id="u-role" required>
-            <option>Student</option>
-            <option>Instructor</option>
-            <option>Admin</option>
-          </select>
-        </div>
-        <div class="form-row">
-          <label for="u-active">Active</label>
-          <select id="u-active">
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </select>
-        </div>
+        <label>Name</label>
+        <input id="u-name" name="name" required>
 
-        <div class="modal-actions">
-          <button type="button" class="btn-secondary" id="modal-cancel">Cancel</button>
-          <button type="submit" class="btn-primary" id="modal-save">Save</button>
+        <label>Email</label>
+        <input id="u-email" name="email" type="email" required>
+
+        <label>Password</label>
+        <input id="u-password" name="password" type="password" placeholder="Leave blank to keep current">
+
+        <label>Role</label>
+        <select id="u-role" name="role" required>
+          <option value="student">Student</option>
+          <option value="instructor">Instructor</option>
+        </select>
+
+        <label>Subjects (comma separated)</label>
+        <input id="u-subjects" name="subjects" placeholder="Math, Reading">
+
+        <div id="modal-buttons">
+          <button id="modal-save" type="submit">Save</button>
+          <button id="modal-cancel" type="button">Cancel</button>
         </div>
       </form>
     </div>
   </div>
 
+  <div id="toast"></div>
+
   <script>
-    /***********************
-     * Sample initial data *
-     ***********************/
-    let users = [
-      { id: 'u1', name: 'Ana Mendoza', email: 'ana@example.edu', role: 'Student', lastLogin: '2025-10-02 09:12', active: true },
-      { id: 'u2', name: 'Mark Dela Cruz', email: 'mark@school.edu', role: 'Instructor', lastLogin: '2025-10-04 11:03', active: true },
-      { id: 'u3', name: 'Jorge Santos', email: 'jorge@kumon.edu', role: 'Admin', lastLogin: '2025-10-05 08:20', active: true },
-      { id: 'u4', name: 'Liza Garcia', email: 'liza@example.edu', role: 'Student', lastLogin: '2025-09-28 15:50', active: false }
-    ];
-
-    const logs = [];
-
-    /***********************
-     * DOM references
-     ***********************/
-    const usersTableBody = document.querySelector('#users-table tbody');
-    const statUsers = document.getElementById('stat-users');
-    const statSessions = document.getElementById('stat-sessions');
-    const statBackup = document.getElementById('stat-backup');
-    const btnAddUser = document.getElementById('btn-add-user');
+    const usersTableBody = document.getElementById('users-table-body');
+    const spinner = document.getElementById('spinner');
+    const toast = document.getElementById('toast');
     const modalBackdrop = document.getElementById('modal-backdrop');
     const userForm = document.getElementById('user-form');
-    const modalTitle = document.getElementById('modal-title');
-    const uName = document.getElementById('u-name');
-    const uEmail = document.getElementById('u-email');
-    const uRole = document.getElementById('u-role');
-    const uActive = document.getElementById('u-active');
     const modalCancel = document.getElementById('modal-cancel');
-    const btnExport = document.getElementById('btn-export');
-    const searchInput = document.getElementById('search');
-    const searchClear = document.getElementById('search-clear');
-    const filterRole = document.getElementById('filter-role');
-    const filterStatus = document.getElementById('filter-status');
-    const btnClearFilters = document.getElementById('btn-clear-filters');
-    const toggleSignup = document.getElementById('toggle-signup');
-    const toggle2fa = document.getElementById('toggle-2fa');
-    const logsEl = document.getElementById('logs');
-    const btnGenLog = document.getElementById('btn-generate-log');
-    const btnClearLogs = document.getElementById('btn-clear-logs');
-    const btnBackup = document.getElementById('btn-backup');
-    const btnRefresh = document.getElementById('btn-refresh');
-    let editingUserId = null;
+    const btnAddUser = document.getElementById('add-user-btn');
+    const userCount = document.getElementById('user-count');
+    const lastBackup = document.getElementById('last-backup');
+    let editUserId = null;
 
-    /***********************
-     * Utility functions
-     ***********************/
-    function uid(prefix='u'){ return prefix + Math.random().toString(36).slice(2,9); }
+    function showToast(msg, type='info') {
+      toast.textContent = msg;
+      toast.style.background = type === 'success' ? '#28a745' : (type === 'error' ? '#dc3545' : '#333');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
 
-    function renderUsers(list=users){
+    async function loadUsers() {
+      spinner.style.display = 'block';
       usersTableBody.innerHTML = '';
-      // apply sorting, filters, search
-      let result = Array.from(list);
-
-      // filter by left side role filter
-      const fRole = filterRole.value;
-      if(fRole) result = result.filter(u => u.role === fRole);
-
-      // filter by status search field
-      const fText = (filterStatus.value || '').toLowerCase().trim();
-      if(fText) result = result.filter(u => (u.name + ' ' + u.email).toLowerCase().includes(fText));
-
-      // global search
-      const q = (searchInput.value || '').toLowerCase().trim();
-      if(q) result = result.filter(u => (u.name + ' ' + u.email + ' ' + u.role).toLowerCase().includes(q));
-
-      // sorting
-      const sortBy = document.getElementById('sort-by').value;
-      result.sort((a,b) => {
-        if(sortBy === 'name') return a.name.localeCompare(b.name);
-        if(sortBy === 'email') return a.email.localeCompare(b.email);
-        return a.role.localeCompare(b.role);
-      });
-
-      result.forEach(u => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${escapeHtml(u.name)} ${u.active ? '' : '<span class="muted" style="margin-left:8px">(inactive)</span>'}</td>
-          <td>${escapeHtml(u.email)}</td>
-          <td><span class="role-badge">${escapeHtml(u.role)}</span></td>
-          <td>${u.lastLogin || '—'}</td>
-          <td class="actions">
-            <button class="edit" data-id="${u.id}">Edit</button>
-            <button class="del" data-id="${u.id}">Delete</button>
-            <button class="small-btn" data-id="${u.id}" data-action="toggle-role">Toggle Role</button>
-          </td>
-        `;
-        usersTableBody.appendChild(tr);
-      });
-
-      // stats
-      statUsers.textContent = users.length;
-      statSessions.textContent = Math.floor(Math.random() * 30) + 1; // demo
-    }
-
-    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-    function openModal(mode='add', user=null){
-      modalBackdrop.style.display = 'flex';
-      modalBackdrop.setAttribute('aria-hidden','false');
-      if(mode === 'add'){
-        modalTitle.textContent = 'Add User';
-        userForm.reset();
-        editingUserId = null;
-      } else {
-        modalTitle.textContent = 'Edit User';
-        editingUserId = user.id;
-        uName.value = user.name;
-        uEmail.value = user.email;
-        uRole.value = user.role;
-        uActive.value = user.active ? 'true' : 'false';
+      try {
+        const res = await fetch('http://localhost:5000/admin/users', { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to fetch users');
+        const users = await res.json();
+        userCount.textContent = users.length;
+        if (!users.length) {
+          usersTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No users found.</td></tr>';
+          return;
+        }
+        users.forEach(u => {
+          const tr = document.createElement('tr');
+          tr.dataset.id = u._id;
+          const created = new Date(u.createdAt || Date.now()).toLocaleString();
+          tr.innerHTML = `
+            <td>${u.name || ''}</td>
+            <td>${u.email || ''}</td>
+            <td>${u.role || ''}</td>
+            <td>${created}</td>
+            <td><button class="edit">Edit</button> <button class="del">Delete</button></td>`;
+          usersTableBody.appendChild(tr);
+        });
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        spinner.style.display = 'none';
       }
-      uName.focus();
     }
 
-    function closeModal(){
-      modalBackdrop.style.display = 'none';
-      modalBackdrop.setAttribute('aria-hidden','true');
-      editingUserId = null;
-    }
-
-    function addUser(data){
-      const newUser = {
-        id: uid(),
-        name: data.name,
-        email: data.email,
-        role: data.role,
-        lastLogin: null,
-        active: data.active === 'true' || data.active === true
-      };
-      users.unshift(newUser);
-      appendLog(`User created: ${newUser.email}`);
-      renderUsers();
-    }
-
-    function updateUser(id, data){
-      const u = users.find(x => x.id === id);
-      if(!u) return;
-      u.name = data.name;
-      u.email = data.email;
-      u.role = data.role;
-      u.active = data.active === 'true' || data.active === true;
-      appendLog(`User updated: ${u.email}`);
-      renderUsers();
-    }
-
-    function deleteUser(id){
-      const idx = users.findIndex(u => u.id === id);
-      if(idx === -1) return;
-      const removed = users.splice(idx,1)[0];
-      appendLog(`User deleted: ${removed.email}`);
-      renderUsers();
-    }
-
-    function toggleUserRole(id){
-      const u = users.find(x => x.id === id);
-      if(!u) return;
-      // simple toggle order: Student -> Instructor -> Admin -> Student
-      const order = ['Student','Instructor','Admin'];
-      const i = order.indexOf(u.role);
-      u.role = order[(i + 1) % order.length];
-      appendLog(`Role changed for ${u.email} -> ${u.role}`);
-      renderUsers();
-    }
-
-    function exportCSV(){
-      if(!users.length){ alert('No users to export'); return; }
-      const rows = [['ID','Name','Email','Role','Active','LastLogin']];
-      users.forEach(u => rows.push([u.id,u.name,u.email,u.role,u.active ? 'Yes' : 'No', u.lastLogin || '']));
-      const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\\n');
-      const blob = new Blob([csv],{type:'text/csv'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'users_export.csv'; a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function appendLog(text){
-      const ts = new Date().toISOString().replace('T',' ').slice(0,19);
-      logs.unshift({ts,text});
-      renderLogs();
-    }
-
-    function renderLogs(){
-      logsEl.innerHTML = '';
-      if(!logs.length) {
-        logsEl.innerHTML = '<div class="muted">No logs yet.</div>';
-        return;
-      }
-      logs.slice(0,100).forEach(l => {
-        const div = document.createElement('div');
-        div.style.padding = '8px 0';
-        div.innerHTML = `<div style="font-size:12px;color:#233">${l.ts}</div><div class="muted" style="margin-top:4px">${escapeHtml(l.text)}</div>`;
-        logsEl.appendChild(div);
-      });
-    }
-
-    /***********************
-     * Event wiring
-     ***********************/
-    // initial render
-    renderUsers();
-    renderLogs();
-    statBackup.textContent = new Date().toLocaleString();
-
-    // add user button
-    btnAddUser.addEventListener('click', () => openModal('add'));
-
-    // modal cancel
-    modalCancel.addEventListener('click', closeModal);
-    modalBackdrop.addEventListener('click', (e) => {
-      if(e.target === modalBackdrop) closeModal();
-    });
-
-    // submit user form
-    userForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const data = { name: uName.value.trim(), email: uEmail.value.trim(), role: uRole.value, active: uActive.value };
-      if(!data.name || !data.email){ alert('Please enter name and email'); return; }
-      // simple email validation
-      if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(data.email)){ alert('Enter a valid email'); return; }
-      if(editingUserId){
-        updateUser(editingUserId, data);
-      } else {
-        addUser(data);
-      }
-      closeModal();
+    btnAddUser.onclick = () => {
+      editUserId = null;
       userForm.reset();
-    });
+      document.getElementById('modal-title').textContent = 'Add User';
+      modalBackdrop.style.display = 'flex';
+    };
 
-    // table event delegation (edit/delete/toggle-role)
-    usersTableBody.addEventListener('click', (e) => {
-      const editBtn = e.target.closest('button.edit');
-      if(editBtn){
-        const id = editBtn.dataset.id;
-        const u = users.find(x => x.id === id);
-        if(u) openModal('edit', u);
-        return;
+    modalCancel.onclick = () => modalBackdrop.style.display = 'none';
+
+    userForm.onsubmit = async e => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(userForm).entries());
+      const url = editUserId ? `http://localhost:5000/admin/users/${editUserId}` : 'http://localhost:5000/admin/users';
+      const method = editUserId ? 'PUT' : 'POST';
+      try {
+        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify(data) });
+        const msg = await res.json();
+        if (!res.ok) throw new Error(msg.message);
+        showToast(msg.message, 'success');
+        modalBackdrop.style.display = 'none';
+        loadUsers();
+      } catch (err) { showToast(err.message, 'error'); }
+    };
+
+    usersTableBody.onclick = async e => {
+      const btn = e.target;
+      const row = btn.closest('tr');
+      if (btn.classList.contains('edit')) {
+        editUserId = row.dataset.id;
+        document.getElementById('u-name').value = row.children[0].textContent;
+        document.getElementById('u-email').value = row.children[1].textContent;
+        document.getElementById('u-role').value = row.children[2].textContent;
+        document.getElementById('modal-title').textContent = 'Edit User';
+        modalBackdrop.style.display = 'flex';
       }
-      const delBtn = e.target.closest('button.del');
-      if(delBtn){
-        const id = delBtn.dataset.id;
-        const u = users.find(x => x.id === id);
-        if(!u) return;
-        if(confirm('Delete ' + u.name + ' (' + u.email + ')?')) deleteUser(id);
-        return;
+      if (btn.classList.contains('del')) {
+        if (!confirm('Are you sure?')) return;
+        try {
+          const res = await fetch(`http://localhost:5000/admin/users/${row.dataset.id}`, { method: 'DELETE', credentials: 'include' });
+          const msg = await res.json();
+          if (!res.ok) throw new Error(msg.message);
+          showToast(msg.message, 'success');
+          loadUsers();
+        } catch (err) { showToast(err.message, 'error'); }
       }
-      const toggleBtn = e.target.closest('button[data-action="toggle-role"]');
-      if(toggleBtn){
-        toggleUserRole(toggleBtn.dataset.id);
-        return;
-      }
-    });
+    };
 
-    // export CSV
-    btnExport.addEventListener('click', exportCSV);
+    document.getElementById('logout-btn').onclick = async () => {
+      await fetch('http://localhost:5000/logout', { method: 'POST', credentials: 'include' });
+      window.location.href = 'Mainhomepage.html';
+    };
 
-    // search / clear
-    searchInput.addEventListener('input', () => renderUsers());
-    searchClear.addEventListener('click', () => { searchInput.value=''; renderUsers(); });
+    // Backup Info
+    lastBackup.textContent = new Date().toLocaleString();
 
-    // filters
-    filterRole.addEventListener('change', renderUsers);
-    filterStatus.addEventListener('input', renderUsers);
-    btnClearFilters.addEventListener('click', () => { filterRole.value=''; filterStatus.value=''; renderUsers(); });
-
-    // toggles
-    function toggleElem(toggleEl){
-      const state = toggleEl.dataset.state === 'on';
-      toggleEl.dataset.state = state ? 'off' : 'on';
-      const knob = toggleEl.querySelector('.knob');
-      knob.style.left = toggleEl.dataset.state === 'on' ? '22px' : '3px';
-      appendLog(`Toggle ${toggleEl.id} => ${toggleEl.dataset.state}`);
-    }
-    toggleSignup.addEventListener('click', () => toggleElem(toggleSignup));
-    toggle2fa.addEventListener('click', () => toggleElem(toggle2fa));
-
-    // logs demo
-    btnGenLog.addEventListener('click', () => {
-      appendLog('Login succeeded for user: demo.user@example.edu');
-      renderLogs();
-    });
-    btnClearLogs.addEventListener('click', () => { logs.length = 0; renderLogs(); });
-
-    // backup demo
-    btnBackup.addEventListener('click', () => {
-      appendLog('Manual backup started');
-      statBackup.textContent = new Date().toLocaleString();
-      setTimeout(()=> appendLog('Manual backup completed'), 800);
-    });
-
-    // refresh button
-    btnRefresh.addEventListener('click', () => { renderUsers(); appendLog('User list refreshed'); });
-
-    // keyboard shortcut to open add user (N)
-    window.addEventListener('keydown', e => {
-      if(e.key === 'N' || e.key === 'n') openModal('add');
-      if(e.key === 'Escape') closeModal();
-    });
-
-    // small accessibility: focus trap not implemented — simple modal behavior for demo
+    loadUsers();
   </script>
 </body>
 </html>
