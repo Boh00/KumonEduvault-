@@ -87,8 +87,8 @@
         <label>Select File (PDF, PNG, JPG)</label>
         <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg" required>
 
-        <input type="text" id="file-name" placeholder="Worksheet Name" required>
-        <input type="text" id="worksheet-value" placeholder="Value" required>
+        <input type="text" id="worksheet-value" placeholder="Worksheet Value" required>
+        <input type="text" id="file-name" placeholder="File Name" required>
 
         <label>Instructor</label>
         <select id="instructor-select" required>
@@ -118,6 +118,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const uploadForm = document.getElementById('upload-form');
   const grid = document.getElementById('grid');
 
+  // === ✅ FIX: Retrieve logged-in student info from localStorage ===
+  let email = '';
+  const storedUser = localStorage.getItem('loggedInUser');
+  if (storedUser) {
+    const user = JSON.parse(storedUser);
+    email = user.email || '';
+  } else {
+    alert('⚠️ Session expired. Please log in again.');
+    window.location.href = 'StudentLogin.html';
+    return;
+  }
+
   // === Load instructors from backend ===
   async function loadInstructors() {
     try {
@@ -126,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
       instructorSelect.innerHTML = '<option value="">Select Instructor</option>';
       instructors.forEach(i => {
         const opt = document.createElement('option');
-        opt.value = i.fullName;
+        opt.value = i._id; // ✅ FIX: Use instructor._id instead of name for backend reference
         opt.textContent = `${i.fullName} (${i.subject})`;
         instructorSelect.appendChild(opt);
       });
@@ -164,8 +176,9 @@ document.addEventListener('DOMContentLoaded', () => {
       card.innerHTML = `
         <div class="thumb">${previewContent}</div>
         <strong>${file.fileName}</strong>
-        <div class="file-info">Instructor: ${file.instructor}</div>
+        <div class="file-info">Instructor: ${file.instructor?.fullName || 'N/A'} (${file.instructor?.subject || 'N/A'})</div>
         <div class="file-info">Worksheet: ${file.worksheetValue}</div>
+        <div class="file-info">Uploaded by: ${file.uploaderEmail || 'N/A'}</div>
         <button class="btn" onclick="downloadFile('${file._id}')">Download</button>
       `;
       grid.appendChild(card);
@@ -193,7 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileName = document.getElementById('file-name').value.trim();
     const worksheetValue = document.getElementById('worksheet-value').value.trim();
     const instructor = instructorSelect.value;
-    const email = localStorage.getItem('userEmail') || '';
 
     if (!file || !fileName || !worksheetValue || !instructor) {
       alert('Please complete all fields before uploading.');
@@ -204,8 +216,8 @@ document.addEventListener('DOMContentLoaded', () => {
     formData.append('file', file);
     formData.append('fileName', fileName);
     formData.append('worksheetValue', worksheetValue);
-    formData.append('instructor', instructor);
-    formData.append('email', email);
+    formData.append('instructor', instructorSelect.value);
+    formData.append('email', email); // ✅ FIX: send the logged-in student’s email
 
     try {
       const res = await fetch('http://localhost:5000/upload', { method: 'POST', body: formData });
@@ -232,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const blob = await res.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = id; // filename will be automatically set by browser
+      a.download = id;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -246,6 +258,5 @@ document.addEventListener('DOMContentLoaded', () => {
   loadFiles();
 });
 </script>
-
 </body>
 </html>

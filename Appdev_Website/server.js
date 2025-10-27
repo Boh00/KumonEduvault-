@@ -152,7 +152,6 @@ app.get('/api/instructor/profile', async (req, res) => {
 });
 
 // ====== NOTIFICATIONS ======
-
 // GET instructor notifications
 app.get('/notifications/:id/instructor', async (req, res) => {
   try {
@@ -237,58 +236,156 @@ app.post('/notifications/send', async (req, res) => {
   }
 });
 
-// ====== UPLOAD FILES TO MONGODB (Triggered on Form Submit) ======
+// ==== INSTRUCTOR ROUTE ====
+app.get('/instructors', async (req, res) => {
+  try {
+    const instructors = await Instructor.find().select('fullName subject');
+    res.json(instructors);
+  } catch (err) {
+    console.error('[GET INSTRUCTORS]', err);
+    res.status(500).json({ message: 'Failed to load instructors.' });
+  }
+});
+
+// ===== Upload file =====
 const memoryStorage = multer.memoryStorage();
 const upload = multer({ storage: memoryStorage });
 
+// 🧠 Student uploads file (saved in MongoDB with instructor reference)
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {
-    const { worksheetValue, instructorId } = req.body;
-    const subject =
-      worksheetValue?.toLowerCase().includes('math') ? 'Math' :
-      worksheetValue?.toLowerCase().includes('reading') ? 'Reading' : null;
+    const { fileName, worksheetValue, instructor, email } = req.body;
+
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded.' });
+
+    // ensure instructor is an ObjectId reference
+    const instructorDoc = await Instructor.findById(instructor);
+    if (!instructorDoc) {
+      return res.status(400).json({ success: false, message: 'Invalid instructor ID.' });
+    }
 
     const newFile = new File({
-      fileName: req.file.originalname,
-      data: req.file.buffer,
-      contentType: req.file.mimetype,
-      size: req.file.size,
+      fileName,
       worksheetValue,
-      subject,
-      instructor: instructorId || null, // ✅ crucial
-      uploaderEmail: req.session?.user?.email || 'unknown'
+      contentType: req.file.mimetype,
+      data: req.file.buffer,
+      instructor: instructorDoc._id,
+      uploaderEmail: email,
+      uploadedAt: new Date()
     });
 
     await newFile.save();
-    res.json({ message: 'File uploaded successfully', file: newFile });
+    res.json({ success: true, message: '✅ File uploaded successfully to MongoDB!' });
   } catch (err) {
-    console.error('UPLOAD ERROR:', err);
+    console.error('[UPLOAD ERROR]', err);
+    res.status(500).json({ success: false, message: 'Server error while uploading.' });
+  }
+});
+
+// ====== FETCH ALL FILES ======
+app.get('/files', async (req, res) => {
+  try {
+    const files = await File.find()
+      .populate('instructor', 'fullName subject')
+      .sort({ uploadedAt: -1 });
+
+    const formatted = files.map(file => ({
+      _id: file._id,
+      fileName: file.fileName,
+      worksheetValue: file.worksheetValue,
+      fileData: file.data?.toString('base64'),
+      contentType: file.contentType,
+      uploaderEmail: file.uploaderEmail,
+      instructor: file.instructor,
+      uploadedAt: file.uploadedAt,
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    console.error('[FETCH FILES ERROR]', err);
+    res.status(500).json({ message: 'Error fetching files' });
+  }
+});
+
+// ====== FETCH FILE BY ID (for download or preview) ======
+app.get('/files/:id', async (req, res) => {
+  try {
+    const file = await File.findById(req.params.id);
+    if (!file) return res.status(404).json({ message: 'File not found.' });
+
+    res.set('Content-Type', file.contentType);
+    res.set('Content-Disposition', `attachment; filename="${file.fileName}"`);
+    res.send(file.data);
+  } catch (err) {
+    console.error('[DOWNLOAD FILE ERROR]', err);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// ✅ Instructor gets all student submissions linked to them
+app.get('/api/instructor/:id/submissions', async (req, res) => {
+  try {
+    const instructorId = req.params.id;
+
+    const files = await File.find({ instructor: instructorId })
+      .populate('instructor', 'fullName email subject')
+      .lean();
+
+    const formattedFiles = files.map(file => ({
+      _id: file._id,
+      fileName: file.fileName,
+      worksheetValue: file.worksheetValue,
+      uploaderEmail: file.uploaderEmail,
+      uploadedAt: file.uploadedAt,
+      contentType: file.contentType,
+      base64Data: file.data?.toString('base64'),
+      instructor: file.instructor ? {
+        fullName: file.instructor.fullName,
+        email: file.instructor.email,
+        subject: file.instructor.subject
+      } : null
+    }));
+
+    res.json(formattedFiles);
+  } catch (err) {
+    console.error('[INSTRUCTOR SUBMISSIONS FETCH ERROR]', err);
+    res.status(500).json({ message: 'Error loading submissions', error: err.message });
+  }
+});
+
+
+// ✏️ Update a submission (rename or add remarks)
+app.put('/api/instructor/submissions/:fileId', async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const { fileName, remarks } = req.body;
+
+    const updated = await File.findByIdAndUpdate(
+      fileId,
+      { fileName, notes: remarks },
+      { new: true }
+    );
+
+    if (!updated) return res.status(404).json({ message: 'File not found' });
+
+    res.json({ message: '✅ File updated successfully', file: updated });
+  } catch (err) {
+    console.error('[UPDATE SUBMISSION ERROR]', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-
-// ====== FETCH ALL FILES FROM MONGODB ======
-app.get('/files', async (req, res) => {
+// 🗑️ Delete a submission
+app.delete('/api/instructor/submissions/:fileId', async (req, res) => {
   try {
-    // Return all uploaded files sorted by newest first
-    const files = await File.find().sort({ uploadedAt: -1 }).lean();
+    const { fileId } = req.params;
+    const deleted = await File.findByIdAndDelete(fileId);
 
-    res.json(files);
-  } catch (err) {
-    console.error('[GET FILES]', err);
-    res.status(500).json({ message: 'Failed to fetch files.' });
-  }
-});
+    if (!deleted) return res.status(404).json({ message: 'File not found' });
 
-app.get('/file/:id', async (req, res) => {
-  try {
-    const file = await File.findById(req.params.id);
-    if (!file) return res.status(404).json({ message: 'File not found' });
-    res.set('Content-Type', file.mimeType);
-    res.send(file.data);
+    res.json({ message: '🗑️ File deleted successfully' });
   } catch (err) {
-    console.error('[GET FILE]', err);
+    console.error('[DELETE SUBMISSION ERROR]', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -324,8 +421,6 @@ app.get('/api/instructor/files', async (req, res) => {
     if (!instructor) return res.status(404).json({ message: 'Instructor not found' });
 
     const subject = instructor.subject;
-
-    // Fetch all files that belong to this subject OR uploaded by students in this subject
     const files = await File.find({
       $or: [
         { instructor: instructor._id },
@@ -340,51 +435,6 @@ app.get('/api/instructor/files', async (req, res) => {
   } catch (err) {
     console.error('[INSTRUCTOR FILES FETCH ERROR]', err);
     res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// ====== GET STUDENT SUBMISSIONS FOR INSTRUCTOR ======
-app.get('/api/instructor/:id/submissions', async (req, res) => {
-  try {
-    const instructorId = req.params.id;
-
-    // 🧩 Verify instructor exists
-    const instructor = await Instructor.findById(instructorId).lean();
-    if (!instructor) {
-      return res.status(404).json({ message: 'Instructor not found' });
-    }
-
-    // 🧠 Fetch files related to the instructor OR their subject
-    const files = await File.find({
-      $or: [
-        { instructor: instructorId },
-        { subject: instructor.subject },
-        { worksheetValue: { $regex: instructor.subject, $options: 'i' } }
-      ]
-    })
-      .sort({ uploadedAt: -1 })
-      .populate('student', 'name email')
-      .lean();
-
-    // 🧩 Convert binary data to base64 for frontend preview
-    const filesWithBase64 = files.map(f => ({
-      _id: f._id,
-      fileName: f.fileName,
-      subject: f.subject,
-      worksheetValue: f.worksheetValue,
-      uploadedAt: f.uploadedAt,
-      remarks: f.notes || '',
-      studentName: f.student?.name || 'Unknown',
-      studentEmail: f.student?.email || '',
-      uploaderEmail: f.uploaderEmail || '',
-      data: f.data ? f.data.toString('base64') : null,
-      contentType: f.contentType || 'application/octet-stream'
-    }));
-
-    res.json(filesWithBase64);
-  } catch (err) {
-    console.error('[INSTRUCTOR SUBMISSIONS FETCH ERROR]', err);
-    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
@@ -446,8 +496,7 @@ app.post('/instructor/upload', upload.single('file'), async (req, res) => {
       data: file.buffer,
       fileName,
       uploaderEmail: req.session.user.email,
-      instructor: req.session.user.id,  // logged-in instructor
-      student: studentId,
+      instructor: req.session.user.id,
       notes: notes || '',
       uploadedAt: new Date()
     });
@@ -464,20 +513,6 @@ app.post('/instructor/upload', upload.single('file'), async (req, res) => {
     res.status(500).json({ message: 'File upload failed.', error: err.message });
   }
 });
-
-// ====== FETCH ALL FILES FROM MONGODB ======
-app.get('/files', async (req, res) => {
-  try {
-    // Return all uploaded files sorted by newest first
-    const files = await File.find().sort({ uploadedAt: -1 }).lean();
-
-    res.json(files);
-  } catch (err) {
-    console.error('[GET FILES]', err);
-    res.status(500).json({ message: 'Failed to fetch files.' });
-  }
-});
-
 
 // ====== LOOKUP ROUTES ======
 app.get('/students/:subject', async (req, res) => {
@@ -669,11 +704,11 @@ app.delete('/admin/users/:id', requireAdmin, async (req, res) => {
 // ✅ Serve static files *after* all API routes
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ✅ Catch-all route (so HTML files only serve if no API matched)
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api/')) return next(); // don't serve HTML for API routes
+app.get(/.*/, (req, res, next) => {
+  if (req.path.startsWith('/api/')) return next(); // skip API routes
   res.sendFile(path.join(__dirname, 'public', 'Mainhomepage.html'));
 });
+
 
 // ====== ROOT PAGE ======
 app.get('/', (_, res) => res.sendFile(path.join(__dirname, 'public', 'Mainhomepage.html')));

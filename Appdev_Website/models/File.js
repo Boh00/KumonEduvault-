@@ -1,13 +1,13 @@
+const mongoose = require('mongoose');
+
 const fileSchema = new mongoose.Schema({
-  fileName: String,
-  data: Buffer,
-  contentType: String,
-  size: Number,
-  worksheetValue: String,
-  subject: String,
-  instructor: { type: mongoose.Schema.Types.ObjectId, ref: 'Instructor' },
-  student: { type: mongoose.Schema.Types.ObjectId, ref: 'Student' },
-  uploaderEmail: String,
-  notes: String,
+  fileName: { type: String, required: true },
+  worksheetValue: { type: String, required: true },
+  data: { type: Buffer, required: true },
+  contentType: { type: String, required: true },
+  uploaderEmail: { type: String, required: true },
+  instructor: { type: mongoose.Schema.Types.ObjectId, ref: 'Instructor', required: true }, // ✅ Important
   uploadedAt: { type: Date, default: Date.now }
 });
+
+module.exports = mongoose.model('File', fileSchema);

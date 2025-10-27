@@ -212,8 +212,8 @@
               <p><strong>${file.fileName}</strong></p>
               <p><em>From: ${file.uploaderEmail || 'Unknown'}</em></p>
               ${file.contentType?.startsWith('image/')
-                ? `<img src="data:${file.contentType};base64,${file.data}" />`
-                : `<p>[Preview not available]</p>`}
+                ? `<img src="data:${file.contentType};base64,${file.base64Data}" />`
+                : `<a href="http://localhost:5000/files/${file._id}" target="_blank">Download File</a>`}
             `;
             editArea.style.display = 'none';
           });
