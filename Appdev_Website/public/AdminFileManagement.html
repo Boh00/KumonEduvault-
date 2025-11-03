@@ -177,7 +177,7 @@
 
     // 🔐 Ensure admin logged in
     const admin = JSON.parse(localStorage.getItem('loggedInUser'));
-    if (!admin || admin.role !== 'admin') {
+    if (!admin || admin.role !== 'Admin') {
       alert('You must be logged in as an admin to access this page.');
       window.location.href = 'AdminLogin.html';
     }

@@ -3,12 +3,12 @@ const mongoose = require('mongoose');
 const activityLogSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    refPath: 'userRole', // dynamic reference (Student, Instructor, or Admin)
+    refPath: 'userRole',
     required: true,
   },
   userRole: {
     type: String,
-    enum: ['student', 'instructor', 'admin'],
+    enum: ['Student', 'Instructor', 'Admin'],
     required: true,
   },
   userEmail: { type: String, required: true },
@@ -19,4 +19,6 @@ const activityLogSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model('ActivityLog', activityLogSchema);
+module.exports =
+  mongoose.models.ActivityLog ||
+  mongoose.model('ActivityLog', activityLogSchema);

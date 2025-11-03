@@ -534,7 +534,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // 🚪 Logout
   document.getElementById("logout-btn").addEventListener("click", async () => {
     try {
       const res = await fetch("/logout", { method: "POST" });

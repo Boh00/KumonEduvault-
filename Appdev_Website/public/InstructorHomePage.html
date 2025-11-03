@@ -59,7 +59,6 @@ textarea{min-height:90px;resize:vertical}
     <ul>
       <li><a href="#" class="active">Home</a></li>
       <li><a href="InstructorFileManagement.html">File Management</a></li>
-      <li><a href="ActivityLogPage(Instructor).html">Logs</a></li>
       <li><a href="Mainhomepage.html" id="logout-link" style="margin-left:12px;color:var(--muted);font-size:14px">Logout</a></li>
     </ul>
   </nav>
@@ -161,7 +160,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (res.ok) {
       instructor = await res.json();
       // Keep a localStorage snapshot (for UX fallback)
-      localStorage.setItem('loggedInUser', JSON.stringify({ email: instructor.email, name: instructor.fullName, role: 'instructor', _id: instructor._id }));
+      localStorage.setItem('loggedInUser', JSON.stringify({ email: instructor.email, name: instructor.fullName, role: 'Instructor', _id: instructor._id }));
     }
   } catch (err) {
     console.warn('Profile fetch error (session):', err);
@@ -174,7 +173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return location.href = 'InstructorLogin.html';
     }
     const user = JSON.parse(stored);
-    if (!user.email || user.role !== 'instructor') {
+    if (!user.email || user.role !== 'Instructor') {
       localStorage.removeItem('loggedInUser');
       return location.href = 'InstructorLogin.html';
     }

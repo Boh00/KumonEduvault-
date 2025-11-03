@@ -249,9 +249,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let allLogs = [];
 
-  // 🔐 Check if admin is logged in
   const admin = JSON.parse(localStorage.getItem("loggedInUser"));
-  if (!admin || admin.role !== "admin") {
+  if (!admin || admin.role !== "Admin") {
     alert("You must be logged in as an admin to access this page.");
     window.location.href = "AdminLogin.html";
     return;
@@ -262,15 +261,48 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const res = await fetch("http://localhost:5000/admin/logs", {
         credentials: "include",
+        headers: { "Accept": "application/json" }
       });
-      if (!res.ok) throw new Error("Failed to fetch logs");
-      const logs = await res.json();
+
+      // If response not OK — show status
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("[LOAD LOGS ERROR]", res.status, text);
+        if (text.trim().startsWith("<")) {
+          tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:red;">
+            Server returned HTML instead of JSON (possible redirect).<br>
+            Check if you're logged in as Admin.
+          </td></tr>`;
+        } else {
+          tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:red;">
+            Error loading logs: ${res.status} ${res.statusText}
+          </td></tr>`;
+        }
+        return;
+      }
+
+      // Try parsing JSON
+      let logs;
+      try {
+        logs = await res.json();
+      } catch (err) {
+        const text = await res.text();
+        console.error("Invalid JSON returned from server:", text);
+        tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:red;">
+          Invalid JSON returned by server. See console for details.
+        </td></tr>`;
+        return;
+      }
+
+      // ✅ If logs loaded successfully
       allLogs = Array.isArray(logs) ? logs : [];
       renderTable(allLogs);
       populateUsers(allLogs);
     } catch (err) {
       console.error("[LOAD LOGS ERROR]", err);
-      tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:red;">Error loading activity logs.</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:red;">
+        Error connecting to server. Check if backend is running.
+      </td></tr>`;
     }
   }
 
@@ -289,7 +321,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 🧠 Render filtered logs
   function renderTable(logs) {
     tableBody.innerHTML = "";
-    if (logs.length === 0) {
+    if (!logs || logs.length === 0) {
       tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No logs found.</td></tr>`;
       totalCount.textContent = "0";
       return;
@@ -301,15 +333,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td class="col-small">${index + 1}</td>
-        <td class="col-time">${new Date(log.timestamp).toLocaleString()}</td>
-        <td class="col-type">${log.type || "—"}</td>
-        <td class="col-user">${log.userEmail || "—"}</td>
-        <td>${log.target || "—"}</td>
+        <td class="col-time">${new Date(log.timestamp || log.createdAt).toLocaleString()}</td>
+        <td class="col-type">${log.type || log.userRole || "—"}</td>
+        <td class="col-user">${log.userEmail || (log.userId?.email ?? "—")}</td>
+        <td>${log.target || log.actionTarget || "—"}</td>
         <td>${log.remarks || log.action || "—"}</td>
         <td class="col-actions">
           <button class="btn ghost tiny" onclick='viewDetails(${JSON.stringify(
             log
-          )})'>View</button>
+          ).replace(/'/g, "&apos;")})'>View</button>
         </td>
       `;
       tableBody.appendChild(tr);
@@ -326,7 +358,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const to = dateTo.value ? new Date(dateTo.value) : null;
 
     const filtered = allLogs.filter(log => {
-      const matchType = !type || log.type === type;
+      const matchType = !type || log.type === type || log.userRole === type;
       const matchSeverity = !severity || log.severity === severity;
       const matchUser = !user || log.userEmail === user;
       const matchText =
@@ -335,7 +367,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           .toLowerCase()
           .includes(q) ||
         (log.userEmail || "").toLowerCase().includes(q);
-      const logDate = new Date(log.timestamp);
+      const logDate = new Date(log.timestamp || log.createdAt);
       const matchFrom = !from || logDate >= from;
       const matchTo = !to || logDate <= to;
 
@@ -367,17 +399,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.viewDetails = log => {
     const modal = document.getElementById("modal");
     document.getElementById("mDate").textContent = new Date(
-      log.timestamp
+      log.timestamp || log.createdAt
     ).toLocaleString();
-    document.getElementById("mType").textContent = log.type || "—";
+    document.getElementById("mType").textContent = log.type || log.userRole || "—";
     document.getElementById("mUser").textContent = log.userEmail || "—";
     document.getElementById("mTarget").textContent = log.target || "—";
     document.getElementById("mNote").value = log.remarks || log.action || "";
-    document.getElementById("mJson").textContent = JSON.stringify(
-      log,
-      null,
-      2
-    );
+    document.getElementById("mJson").textContent = JSON.stringify(log, null, 2);
     modal.style.display = "flex";
   };
 
@@ -392,6 +420,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   loadLogs();
 });
 </script>
+
 
 </body>
 </html>

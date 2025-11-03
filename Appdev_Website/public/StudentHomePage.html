@@ -60,7 +60,6 @@ button[type="submit"]:hover{background:#333}
     <ul>
       <li><a href="Mainhomepage.html" class="active">Home</a></li>
       <li><a href="StudentFileManagement.html">Files</a></li>
-      <li><a href="ActivityLogPage(Student).html">Activity</a></li>
       <li><a href="StudentsSettingsPage.html">Settings</a></li>
     </ul>
   </nav>
@@ -136,7 +135,7 @@ button[type="submit"]:hover{background:#333}
     if (!storedUser) return (window.location.href = "StudentLogin.html");
 
     const user = JSON.parse(storedUser);
-    if (!user.email || user.role !== "student") {
+    if (!user.email || user.role !== "Student") {
       localStorage.removeItem("loggedInUser");
       return (window.location.href = "StudentLogin.html");
     }
