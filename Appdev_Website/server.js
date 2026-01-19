@@ -1,4 +1,3 @@
-// ========== General imports & setup ==========
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -16,7 +15,6 @@ const ActivityLog = require('./models/ActivityLog');
 
 const app = express();
 
-// ===== Middleware =====
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -28,7 +26,6 @@ app.use(session({
   cookie: { httpOnly: true, secure: false, sameSite: 'lax', maxAge: 1000 * 60 * 60 * 2 }
 }));
 
-// ===== Small helpers =====
 const getModelByRole = (role) => {
   if (!role) return null;
   switch (String(role).toLowerCase()) {
@@ -39,9 +36,6 @@ const getModelByRole = (role) => {
   }
 };
 
-// ===========================
-// Helper: Log activity (auto-fix role casing)
-// ===========================
 async function logActivity({ userId, userRole, userEmail, action }) {
   try {
     const roleMap = {
@@ -63,14 +57,10 @@ async function logActivity({ userId, userRole, userEmail, action }) {
   }
 }
 
-
-
-// Escape regex helper for safe case-insensitive match
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// ===== Activity log helper (keeps DB logging, minimal console output) =====
 async function logActivity({ userId = null, userRole = 'system', userEmail = 'unknown', action = '' }) {
   try {
     await ActivityLog.create({ userId, userRole, userEmail, action });
@@ -79,7 +69,6 @@ async function logActivity({ userId = null, userRole = 'system', userEmail = 'un
   }
 }
 
-// ====== DATABASE ======
 mongoose.connect(
   "mongodb+srv://lancemacalalad1104_db_user:OxUBj8xxF85JYKIA@cluster0.sxatxqn.mongodb.net/Users?retryWrites=true&w=majority",
   { useNewUrlParser: true, useUnifiedTopology: true }
@@ -90,16 +79,8 @@ mongoose.connect(
     process.exit(1);
   });
 
-// ===== Multer (file upload) =====
 const upload = multer({ storage: multer.memoryStorage() });
 
-/* ============================================================
-   General / Auth Routes (shared by Student, Instructor, Admin)
-   ============================================================ */
-
-// ============================
-// ✅ SHARED SIGNUP ROUTE
-// ============================
 app.post('/signup', async (req, res) => {
   try {
     const { email = '', password = '', role = '', idnum, fullname, start, subject, subjects } = req.body;
@@ -113,7 +94,6 @@ app.post('/signup', async (req, res) => {
     if (!Model)
       return res.status(400).json({ message: 'Invalid role specified.' });
 
-    // Check for existing user (case-insensitive)
     const existing = await Model.findOne({
       email: { $regex: new RegExp(`^${escapeRegExp(emailTrim)}$`, 'i') },
     });
@@ -123,7 +103,6 @@ app.post('/signup', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     let newUser;
 
-    // Normalize role (capitalize first letter)
     const roleProper = String(role).charAt(0).toUpperCase() + String(role).slice(1).toLowerCase();
 
     if (roleProper === 'Admin') {
@@ -169,7 +148,6 @@ app.post('/signup', async (req, res) => {
 
     await newUser.save();
 
-    // ✅ Log Activity
     await logActivity({
       userId: newUser._id,
       userRole: roleProper,
@@ -184,10 +162,6 @@ app.post('/signup', async (req, res) => {
   }
 });
 
-
-// ============================
-// ✅ SHARED LOGIN ROUTE
-// ============================
 app.post('/login', async (req, res) => {
   try {
     const { email = '', password = '', role = '' } = req.body;
@@ -212,7 +186,6 @@ app.post('/login', async (req, res) => {
     const name = user.name || user.fullName || emailTrim.split('@')[0];
     const roleProper = String(role).charAt(0).toUpperCase() + String(role).slice(1).toLowerCase();
 
-    // Store session
     req.session.user = {
       email: user.email,
       name,
@@ -220,7 +193,6 @@ app.post('/login', async (req, res) => {
       id: user._id,
     };
 
-    // ✅ Log Activity
     await logActivity({
       userId: user._id,
       userRole: roleProper,
@@ -246,8 +218,6 @@ app.post('/login', async (req, res) => {
   }
 });
 
-
-// Session check & logout
 app.get('/session-check', (req, res) => {
   req.session.user ? res.json({ loggedIn: true, user: req.session.user }) : res.status(401).json({ loggedIn: false, message: 'No session' });
 });
@@ -266,11 +236,6 @@ app.get('/api/logout', async (req, res) => {
   }
 });
 
-/* ===========================
-   Student-related endpoints
-   =========================== */
-
-// Get students by subject
 app.get('/students/:subject', async (req, res) => {
   try {
     const { subject } = req.params;
@@ -285,7 +250,6 @@ app.get('/students/:subject', async (req, res) => {
   }
 });
 
-// Get student by email (case-insensitive)
 app.get('/student/:email', async (req, res) => {
   try {
     const email = String(req.params.email).trim();
@@ -297,11 +261,6 @@ app.get('/student/:email', async (req, res) => {
   }
 });
 
-/* ===========================
-   Instructor-related endpoints
-   =========================== */
-
-// Get instructor profile (protected)
 app.get('/api/instructor/profile', async (req, res) => {
   try {
     if (!req.session?.user || req.session.user.role !== 'Instructor')
@@ -315,7 +274,6 @@ app.get('/api/instructor/profile', async (req, res) => {
   }
 });
 
-// Get all instructors (public)
 app.get('/instructors', async (req, res) => {
   try {
     const instructors = await Instructor.find().select('_id fullName email subject startingDate').lean();
@@ -326,7 +284,6 @@ app.get('/instructors', async (req, res) => {
   }
 });
 
-// Get instructors by subject
 app.get('/instructors/:subject', async (req, res) => {
   try {
     const { subject } = req.params;
@@ -340,17 +297,11 @@ app.get('/instructors/:subject', async (req, res) => {
   }
 });
 
-/* ===========================
-   File & instructor submission endpoints
-   =========================== */
-
-// Upload (general upload endpoint used by forms)
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {
     const { fileName, worksheetValue, instructor, email } = req.body;
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded.' });
 
-    // If an instructor id was supplied, validate
     let instructorDoc = null;
     if (instructor) {
       instructorDoc = await Instructor.findById(instructor);
@@ -383,7 +334,6 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// Fetch all files
 app.get('/files', async (req, res) => {
   try {
     const files = await File.find().populate('instructor', 'fullName subject').sort({ uploadedAt: -1 }).lean();
@@ -404,7 +354,6 @@ app.get('/files', async (req, res) => {
   }
 });
 
-// Download file by ID
 app.get('/files/:id', async (req, res) => {
   try {
     const file = await File.findById(req.params.id);
@@ -418,7 +367,6 @@ app.get('/files/:id', async (req, res) => {
   }
 });
 
-// Instructor: get submissions linked to them
 app.get('/api/instructor/:id/submissions', async (req, res) => {
   try {
     const instructorId = req.params.id;
@@ -444,7 +392,6 @@ app.get('/api/instructor/:id/submissions', async (req, res) => {
   }
 });
 
-// Instructor: update a submission (edit name/remarks)
 app.put('/api/instructor/submissions/:fileId', async (req, res) => {
   try {
     const { fileId } = req.params;
@@ -466,7 +413,6 @@ app.put('/api/instructor/submissions/:fileId', async (req, res) => {
   }
 });
 
-// Instructor: delete submission
 app.delete('/api/instructor/submissions/:fileId', async (req, res) => {
   try {
     const { fileId } = req.params;
@@ -487,7 +433,6 @@ app.delete('/api/instructor/submissions/:fileId', async (req, res) => {
   }
 });
 
-// Instructor-specific upload to student (instructor must be authenticated)
 app.post('/instructor/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.session?.user || req.session.user.role !== 'instructor') return res.status(403).json({ message: 'Unauthorized' });
@@ -524,11 +469,7 @@ app.post('/instructor/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-/* ===========================
-   Notifications (shared)
-   =========================== */
 
-// Get instructor notifications
 app.get('/notifications/:id/instructor', async (req, res) => {
   try {
     const notifications = await Notification.find({ recipient: req.params.id, recipientModel: 'Instructor' }).sort({ createdAt: -1 }).lean();
@@ -539,7 +480,6 @@ app.get('/notifications/:id/instructor', async (req, res) => {
   }
 });
 
-// Get student notifications
 app.get('/notifications/:id/student', async (req, res) => {
   try {
     const notifications = await Notification.find({ recipient: req.params.id, recipientModel: 'Student' }).sort({ createdAt: -1 }).lean();
@@ -550,7 +490,6 @@ app.get('/notifications/:id/student', async (req, res) => {
   }
 });
 
-// Mark notification read
 app.patch('/notifications/:id/read', async (req, res) => {
   try {
     const notificationId = req.params.id;
@@ -563,7 +502,6 @@ app.patch('/notifications/:id/read', async (req, res) => {
   }
 });
 
-// Send notifications
 app.post('/notifications/send', async (req, res) => {
   try {
     const { senderId, senderModel, recipientType, recipientsIds, message, subject } = req.body;
@@ -604,11 +542,7 @@ app.post('/notifications/send', async (req, res) => {
   }
 });
 
-/* ===========================
-   Admin-related endpoints
-   =========================== */
 
-// Helper to find which model contains an id
 async function findUserModelById(id) {
   if (!mongoose.Types.ObjectId.isValid(id)) return null;
   let doc = await Student.findById(id).select('-password').lean();
@@ -620,7 +554,6 @@ async function findUserModelById(id) {
   return null;
 }
 
-// Get all users (combined) - admin only
 app.get(['/admin/users', '/api/admin/users'], async (req, res) => {
   if (!req.session?.user || req.session.user.role?.toLowerCase() !== 'admin') {
     return res.status(403).json({ message: 'Access denied (not admin)' });
@@ -643,7 +576,6 @@ app.get(['/admin/users', '/api/admin/users'], async (req, res) => {
   }
 });
 
-// Create user (admin)
 app.post('/admin/users', requireAdmin, async (req, res) => {
   try {
     const body = req.body;
@@ -683,7 +615,6 @@ app.post('/admin/users', requireAdmin, async (req, res) => {
   }
 });
 
-// Update user (admin)
 app.put('/admin/users/:id', requireAdmin, async (req, res) => {
   try {
     const id = req.params.id;
@@ -708,7 +639,6 @@ app.put('/admin/users/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// Delete user (admin)
 app.delete('/admin/users/:id', requireAdmin, async (req, res) => {
   try {
     const id = req.params.id;
@@ -725,11 +655,6 @@ app.delete('/admin/users/:id', requireAdmin, async (req, res) => {
   }
 });
 
-/* ===========================
-   Admin: Activity Logs
-   =========================== */
-
-// Middleware: Require Admin (JSON version)
 function requireAdmin(req, res, next) {
   if (!req.session?.user || req.session.user.role?.toLowerCase() !== "admin") {
     return res.status(403).json({ message: "Access denied. Admins only." });
@@ -737,8 +662,6 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-
-// Log activity manually (for admin or system actions)
 app.post('/api/logs', async (req, res) => {
   try {
     const { userId, userRole, userEmail, action } = req.body;
@@ -756,7 +679,6 @@ app.post('/api/logs', async (req, res) => {
   }
 });
 
-// Fetch all activity logs (Admin only)
 app.get('/admin/logs', requireAdmin, async (req, res) => {
   try {
     const logs = await ActivityLog.find()
@@ -771,9 +693,6 @@ app.get('/admin/logs', requireAdmin, async (req, res) => {
   }
 });
 
-/* =======================================================
-   📂 ADMIN FILE MANAGEMENT (MongoDB-based)
-   ======================================================= */
 
 app.get("/admin/files", requireAdmin, async (req, res) => {
   try {
@@ -799,7 +718,6 @@ app.get("/admin/files", requireAdmin, async (req, res) => {
   }
 });
 
-// ✅ Serve file data directly from MongoDB (for preview/download)
 app.get("/admin/files/:id", requireAdmin, async (req, res) => {
   try {
     const file = await File.findById(req.params.id);
@@ -813,7 +731,6 @@ app.get("/admin/files/:id", requireAdmin, async (req, res) => {
   }
 });
 
-// ✅ Delete a file
 app.delete("/admin/files/:id", requireAdmin, async (req, res) => {
   try {
     const file = await File.findById(req.params.id);
@@ -821,7 +738,6 @@ app.delete("/admin/files/:id", requireAdmin, async (req, res) => {
 
     await File.findByIdAndDelete(req.params.id);
 
-    // Log admin activity
     await ActivityLog.create({
       userId: req.session.user.id,
       userRole: "admin",
@@ -836,21 +752,12 @@ app.delete("/admin/files/:id", requireAdmin, async (req, res) => {
   }
 });
 
-/* ===========================
-   Static files and fallback
-   =========================== */
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve main app page for other non-API routes
 app.get(/.*/, (req, res, next) => {
   if (req.path.startsWith('/api/') || req.path.startsWith('/admin/') || req.path.startsWith('/notifications') || req.path.startsWith('/files')) return next();
   res.sendFile(path.join(__dirname, 'public', 'Mainhomepage.html'));
 });
 
-
-
-/* ===========================
-   Start server
-   =========================== */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
